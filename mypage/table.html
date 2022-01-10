@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+	<title>課表</title>
+	<meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+  <link href="menu.css" rel="stylesheet">
+    <style>
+    .cat {
+    color: rgb(0, 255, 255);
+    }
+  @font-face {
+    font-family: "FakePearl-Regular";
+    src: url(FakePearl-Regular.ttf);
+    }
+    @media screen and (max-width: 600px){
+        nav, .container{
+            flex-direction: column;
+        }
+    }
+    header{
+    text-align: center; 
+    background-color: rgb(127, 140, 255); 
+    padding: 200 ; 
+    color:rgb(58, 58, 2)
+    }
+    nav{ display: flex; 
+        flex-direction: row; 
+        padding:5px 0px;
+        color:rgb(59, 57, 56);
+        text-align:center;
+        background-color:rgb(19, 188, 218);
+        font-family: "FakePearl-Regular";
+    } 
+    .container{
+        display: flex; 
+        flex-wrap: wrap; 
+    }
+    aside{ flex: 20px ; background-color: rgb(58, 58, 2); padding: 20px 
+    } 
+    section{flex: 20px ; background-color: rgb(140, 150, 240); padding: 20px ; 
+    } 
+    footer{ background-color: rgb(236, 105, 127); padding: 10px ; text-align: center; 
+    } 
+    @font-face {
+  font-family: FakePearl-Regular;
+  src: url(https://cdn.jsdelivr.net/gh/max32002/FakePearl@1.1/webfont/FakePearl-Regular.woff2) format("woff2")
+  , url(https://cdn.jsdelivr.net/gh/max32002/FakePearl@1.1/webfont/FakePearl-Regular.woff) format("woff");
+}
+
+    </style>
+</head>
+<body bgColor ="gray">
+    
+<nav>
+  <ul class="drop-down-menu">
+    <li><a href="#">本站</a>
+    <ul>
+    <li><a href="index.html">自我介紹</a></li>
+    <li><a href="table.html">課表</a></li>
+    <li><a href="video.html">影片</a></li>
+    <li><a href="akuno.html">悪ノ娘　WORLD</a></li>
+    <li><a href="1J.html">JOJO</a></li>
+    </ul>
+    <li><a href="#">外部連結</a>
+            <ul>
+                <li><a href="https://piapro.net/pages/character">piapro</a></li>
+                <li><a href="https://zh.wikipedia.org/wiki/VOCALOID">VOCALOID</a></li>
+                <li><a href="https://zh.wikipedia.org/wiki/%E8%99%9B%E6%93%ACYouTuber">虛擬YouTuber</a></li>
+            </ul>
+    </li>
+</ul>   
+<h1 class=cat>課表</h1>
+<table border="1">
+    <tr><td> </td><td>一</td><td>二</td><td>三</td><td>四</td><td rowspan="0">五沒有課</td></tr>
+    <tr><td> 1-2</td><td rowspan="2"> 圖書館知能服務</td><td> </td><td> </td><td></td></tr>
+    <tr><td> 3-4</td><td> </td><td> 索引及摘要</td><td>全民國防教育軍事訓練（二）</td></tr>
+    <tr><td> 6</td><td> </td><td rowspan="2">網頁程式設計 </td><td rowspan="2"> 資料庫概論</td><td> </td></tr>
+    <tr><td> 7</td><td rowspan="2"> 文化創意產業概論</td><td rowspan="2"> 表演藝術</td> </tr>
+    <tr><td> 8</td><td> 說故事與創意</td><td> </td></tr>
+    <tr><td> 11-12</td><td> </td><td> </td><td> 中級日語會話</td><td> </td></tr>
+    <tr><td> 13-14</td><td> </td><td colspan="2"> 中級日語讀本</td><td> </td></tr>
+</table>
+</nav>
+</body>
+</html>
