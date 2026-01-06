@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>終端騎士 Terminal Knight</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --main-color: #33ff33; /* 終端機綠 */
+            --accent-color: #ffb000; /* 琥珀色 */
+            --danger-color: #ff3333; /* 警告紅 */
+            --dim-color: #1a5c1a;
+            --font-main: 'Courier New', Courier, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--main-color);
+            font-family: var(--font-main);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* CRT Effect Overlay */
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            height: 100%;
+            max-height: 900px;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid var(--dim-color);
+            position: relative;
+            background-color: #000;
+            box-shadow: 0 0 20px rgba(51, 255, 51, 0.1);
+        }
+
+        /* 1. Status Bar */
+        #status-bar {
+            padding: 10px;
+            border-bottom: 1px solid var(--main-color);
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .bar-container {
+            display: inline-block;
+            width: 80px;
+            background: var(--dim-color);
+            height: 10px;
+            margin-left: 5px;
+            position: relative;
+        }
+        .bar-fill {
+            height: 100%;
+            background: var(--main-color);
+            transition: width 0.3s;
+        }
+        .hp-fill { background: var(--danger-color); }
+        .mp-fill { background: var(--accent-color); }
+
+        /* 2. Visual Stage (ASCII Art) */
+        #visual-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            text-align: center;
+            white-space: pre;
+            font-size: 14px;
+            line-height: 1.2;
+            color: var(--accent-color);
+            text-shadow: 0 0 5px var(--accent-color);
+            padding: 20px;
+        }
+
+        /* Animations */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+        .shake { animation: shake 0.5s; }
+        .flash { animation: flash 0.2s; }
+        @keyframes flash {
+            0% { background-color: var(--main-color); color: #000; }
+            100% { background-color: #000; color: var(--main-color); }
+        }
+
+        /* 3. Log Area */
+        #log-area {
+            height: 150px;
+            border-top: 1px dashed var(--dim-color);
+            border-bottom: 1px solid var(--main-color);
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+        .log-entry { margin-bottom: 4px; opacity: 0.8; }
+        .log-entry.new { color: #fff; opacity: 1; text-shadow: 0 0 2px #fff; }
+        .log-highlight { color: var(--accent-color); }
+
+        /* 4. Controls */
+        #controls {
+            height: 220px;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        button {
+            background: transparent;
+            border: 2px solid var(--main-color);
+            color: var(--main-color);
+            font-family: var(--font-main);
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.1s;
+        }
+
+        button:active {
+            background: var(--main-color);
+            color: #000;
+        }
+
+        button:disabled {
+            border-color: var(--dim-color);
+            color: var(--dim-color);
+            cursor: not-allowed;
+        }
+
+        /* Specific Button Styles */
+        .btn-menu { grid-column: span 2; }
+
+        /* Menu Overlay */
+        #menu-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            display: none; /* JS toggles this */
+        }
+        .menu-title { font-size: 24px; margin-bottom: 30px; color: var(--accent-color); text-transform: uppercase;}
+        .menu-option {
+            width: 80%;
+            padding: 15px;
+            margin: 5px 0;
+            text-align: center;
+            border: 1px solid var(--dim-color);
+            cursor: pointer;
+        }
+        .menu-option:hover { border-color: var(--main-color); }
+        .menu-option.selected { background: var(--main-color); color: #000; }
+
+    </style>
+</head>
+<body>
+
+<div class="crt-overlay"></div>
+
+<div id="game-container">
+    <!-- 1. STATUS BAR -->
+    <div id="status-bar">
+        <div>
+            LV <span id="ui-lvl">1</span> | <span id="ui-job">騎士</span>
+        </div>
+        <div style="text-align: right;">
+            HP <div class="bar-container"><div id="ui-hp-bar" class="bar-fill hp-fill" style="width: 100%;"></div></div> <span id="ui-hp-text">100/100</span><br>
+            MP <div class="bar-container"><div id="ui-mp-bar" class="bar-fill mp-fill" style="width: 100%;"></div></div> <span id="ui-mp-text">20/20</span>
+        </div>
+    </div>
+
+    <!-- 2. VISUAL STAGE -->
+    <div id="visual-stage">
+        <!-- ASCII Art Injected Here -->
+        <div id="scene-art">
+           _   _
+          (o)_(o)
+         (  _  )
+         / / \ \
+        </div>
+        <div id="scene-text" style="margin-top:10px;">系統啟動中...</div>
+    </div>
+
+    <!-- 3. LOG AREA -->
+    <div id="log-area">
+        <!-- Logs Injected Here -->
+    </div>
+
+    <!-- 4. CONTROLS -->
+    <div id="controls">
+        <button id="btn-1" onclick="game.handleInput(0)">攻擊</button>
+        <button id="btn-2" onclick="game.handleInput(1)">技能</button>
+        <button id="btn-3" onclick="game.handleInput(2)">防禦</button>
+        <button id="btn-4" onclick="game.handleInput(3)">物品</button>
+    </div>
+
+    <!-- MENU OVERLAY -->
+    <div id="menu-overlay">
+        <div class="menu-title">TERMINAL KNIGHT</div>
+        <div id="menu-content" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+            <!-- Menu Items Injected Here -->
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * AUDIO SYSTEM (Synthesizer)
+ */
+const audioSys = {
+    ctx: null,
+    init: function() {
+        if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    },
+    playTone: function(freq, type, duration, vol=0.1) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+    },
+    sfx: {
+        blip: () => audioSys.playTone(800, 'square', 0.05, 0.05),
+        select: () => audioSys.playTone(440, 'square', 0.1, 0.1),
+        hit: () => {
+            audioSys.playTone(150, 'sawtooth', 0.1, 0.2);
+            audioSys.playTone(100, 'sawtooth', 0.2, 0.2);
+        },
+        magic: () => {
+            audioSys.playTone(600, 'sine', 0.3, 0.1);
+            setTimeout(()=>audioSys.playTone(900, 'sine', 0.3, 0.1), 100);
+        },
+        win: () => {
+             audioSys.playTone(523, 'square', 0.2);
+             setTimeout(()=>audioSys.playTone(659, 'square', 0.2), 200);
+             setTimeout(()=>audioSys.playTone(784, 'square', 0.4), 400);
+        },
+        die: () => {
+            audioSys.playTone(200, 'sawtooth', 1.0);
+        }
+    }
+};
+
+/**
+ * GAME DATA
+ */
+const GAME_DATA = {
+    weapons: [
+        { id: 'sword', name: '鏽劍', atk: 5, def: 0, spd: 0, desc: '平衡的選擇' },
+        { id: 'spear', name: '鐵矛', atk: 8, def: -2, spd: 3, desc: '犧牲防禦換取速度' },
+        { id: 'shield', name: '圓盾', atk: 2, def: 8, spd: -2, desc: '防禦優先' }
+    ],
+    enemies: {
+        slime: { name: '錯誤史萊姆', hp: 30, maxHp: 30, atk: 8, def: 0, exp: 10, art: `
+   (o)_(o)
+  (  DATA  )
+   \\______/` },
+        wolf: { name: '防火牆守衛犬', hp: 45, maxHp: 45, atk: 12, def: 1, exp: 20, art: `
+   /\\_ /\\
+  ( o.o )
+   > ^ <` },
+        skeleton: { name: '過時驅動程式', hp: 60, maxHp: 60, atk: 15, def: 5, exp: 30, art: `
+    [xx]
+   /|  |\\
+    /  \\` },
+        boss: { name: 'NULL POINTER DRAGON', hp: 200, maxHp: 200, atk: 25, def: 8, exp: 500, art: `
+      <>=======()
+     (/)       \\
+    / /  BOSS   \\
+   ( (  ERROR   ) )
+    \\_\\________/_/` }
+    },
+    chapters: [
+        { id: 0, type: 'story', text: "系統重啟中...\n記憶體位址 0x0000... \n\n你醒在一片數據廢墟之中。\n手中握著最後的編譯器之劍。\n\n必須前往「根目錄」修復這個世界。" },
+        { id: 1, type: 'battle', enemy: 'slime' },
+        { id: 2, type: 'story', text: "擊敗了錯誤代碼形成的凝膠體。\n你感覺數據流正在回歸你的身體。\n\n前方是黑暗森林的深處。" },
+        { id: 3, type: 'camp', text: "發現一個安全的緩存區(Buffer Zone)。\n可以在此整備。" },
+        { id: 4, type: 'battle', enemy: 'wolf' },
+        { id: 5, type: 'battle', enemy: 'skeleton' },
+        { id: 6, type: 'story', text: "前方檢測到巨大的異常信號。\n核心處理器似乎被腐化了。\n\n這將是最後的戰鬥。" },
+        { id: 7, type: 'camp', text: "最後的存檔點。" },
+        { id: 8, type: 'boss', enemy: 'boss' },
+        { id: 9, type: 'win', text: "目標已被移除。\n系統完整性恢復 100%。\n\n感謝遊玩 MVP 版本。" }
+    ]
+};
+
+/**
+ * GAME ENGINE
+ */
+const game = {
+    state: 'START', // START, STORY, EXPLORE, BATTLE, MENU, GAMEOVER, WIN
+    chapterIndex: 0,
+    player: {
+        lvl: 1,
+        hp: 100, maxHp: 100,
+        mp: 20, maxMp: 20,
+        baseAtk: 10, baseDef: 2, spd: 5,
+        exp: 0, nextExp: 50,
+        potions: 3,
+        weaponIdx: 0 // 0: Sword
+    },
+    battle: {
+        enemy: null,
+        turn: 0, // 0: Player, 1: Enemy
+        isDefending: false,
+        enemyCharge: false
+    },
+    
+    // 初始化
+    init: function() {
+        this.loadGame();
+        this.renderStatus();
+        this.showMainMenu();
+        
+        // Listeners for audio init
+        document.body.addEventListener('click', () => audioSys.init(), {once:true});
+    },
+
+    // 存檔/讀檔
+    saveGame: function() {
+        const data = {
+            player: this.player,
+            chapterIndex: this.chapterIndex
+        };
+        localStorage.setItem('tk_save_mvp', JSON.stringify(data));
+        this.log("進度已保存。", "log-highlight");
+    },
+    
+    loadGame: function() {
+        const saved = localStorage.getItem('tk_save_mvp');
+        if (saved) {
+            const data = JSON.parse(saved);
+            this.player = data.player;
+            this.chapterIndex = data.chapterIndex;
+        }
+    },
+    
+    resetGame: function() {
+        localStorage.removeItem('tk_save_mvp');
+        location.reload();
+    },
+
+    // 核心邏輯路由
+    handleInput: function(idx) {
+        audioSys.sfx.select();
+        
+        if (this.state === 'START') {
+            if (idx === 0) this.startGame(); // Start New
+            if (idx === 1 && localStorage.getItem('tk_save_mvp')) this.startGame(true); // Continue
+        }
+        else if (this.state === 'STORY' || this.state === 'WIN') {
+            this.nextChapter();
+        }
+        else if (this.state === 'EXPLORE') {
+            if (idx === 0) this.nextChapter(); // 前進
+            if (idx === 1) this.openEquipMenu(); // 裝備
+            if (idx === 2) this.rest(); // 休息
+        }
+        else if (this.state === 'BATTLE') {
+            this.combatAction(idx);
+        }
+        else if (this.state === 'MENU') {
+            this.changeEquip(idx);
+        }
+        else if (this.state === 'GAMEOVER') {
+            this.resetGame();
+        }
+    },
+
+    // 流程控制
+    showMainMenu: function() {
+        this.state = 'START';
+        document.getElementById('menu-overlay').style.display = 'flex';
+        const hasSave = localStorage.getItem('tk_save_mvp');
+        
+        let html = `<div class="menu-option selected" onclick="game.handleInput(0)">新遊戲 INIT</div>`;
+        if (hasSave) {
+            html += `<div class="menu-option" onclick="game.handleInput(1)">繼續 LOAD</div>`;
+        }
+        document.getElementById('menu-content').innerHTML = html;
+        this.updateButtons(['','','','']);
+    },
+
+    startGame: function(load = false) {
+        document.getElementById('menu-overlay').style.display = 'none';
+        if (!load) {
+            this.chapterIndex = 0;
+            // Reset player stats
+            this.player = {
+                lvl: 1, hp: 100, maxHp: 100, mp: 20, maxMp: 20,
+                baseAtk: 10, baseDef: 2, spd: 5,
+                exp: 0, nextExp: 50, potions: 3, weaponIdx: 0
+            };
+        }
+        this.processChapter();
+    },
+
+    processChapter: function() {
+        if (this.chapterIndex >= GAME_DATA.chapters.length) return;
+        
+        const chap = GAME_DATA.chapters[this.chapterIndex];
+        
+        if (chap.type === 'story' || chap.type === 'win') {
+            this.state = chap.type === 'win' ? 'WIN' : 'STORY';
+            this.setArt(`\n\n[ ARCHIVE ${this.chapterIndex} ]\n...`);
+            this.typewriter(chap.text);
+            this.updateButtons(['繼續', '', '', '']);
+            if (this.state === 'WIN') audioSys.sfx.win();
+        } 
+        else if (chap.type === 'camp') {
+            this.state = 'EXPLORE';
+            this.saveGame();
+            this.setArt(`
+     /\\
+    /  \\  [CAMP]
+   /____\\  ||||
+     ||    ====`);
+            this.log(chap.text);
+            this.updateButtons(['前進', '裝備', '休息', '']);
+        }
+        else if (chap.type === 'battle' || chap.type === 'boss') {
+            this.startBattle(chap.enemy);
+        }
+    },
+
+    nextChapter: function() {
+        this.chapterIndex++;
+        this.processChapter();
+    },
+
+    // 戰鬥系統
+    startBattle: function(enemyId) {
+        this.state = 'BATTLE';
+        const template = GAME_DATA.enemies[enemyId];
+        // 深拷貝敵人數據
+        this.battle.enemy = { ...template };
+        this.battle.turn = 0;
+        this.battle.isDefending = false;
+        this.battle.enemyCharge = false;
+        
+        this.setArt(this.battle.enemy.art);
+        this.log(`遭遇敵對程序: ${this.battle.enemy.name} !`, "danger");
+        this.renderCombatUI();
+    },
+
+    renderCombatUI: function() {
+        this.updateButtons(['攻擊', '技能(5MP)', '防禦', `藥水(${this.player.potions})`]);
+    },
+
+    combatAction: function(idx) {
+        // Player Turn
+        const p = this.player;
+        const e = this.battle.enemy;
+        const w = GAME_DATA.weapons[p.weaponIdx];
+        
+        let dmg = 0;
+        let msg = "";
+
+        // Get Player Stats
+        let pAtk = p.baseAtk + w.atk;
+        
+        if (idx === 0) { // Attack
+            dmg = Math.max(1, pAtk - e.def);
+            e.hp -= dmg;
+            msg = `你使用 ${w.name} 造成 ${dmg} 傷害。`;
+            audioSys.sfx.hit();
+            this.shakeScreen();
+        } 
+        else if (idx === 1) { // Skill (Fire Slash)
+            if (p.mp >= 5) {
+                p.mp -= 5;
+                dmg = Math.max(10, (pAtk * 1.5) - (e.def / 2)); // Penetrate def
+                dmg = Math.floor(dmg);
+                e.hp -= dmg;
+                msg = `你施放了 [FIRE_WALL]！造成 ${dmg} 傷害。`;
+                audioSys.sfx.magic();
+                this.shakeScreen();
+            } else {
+                this.log("MP 不足！", "danger");
+                audioSys.sfx.blip();
+                return;
+            }
+        } 
+        else if (idx === 2) { // Defend
+            this.battle.isDefending = true;
+            p.mp = Math.min(p.maxMp, p.mp + 5); // Recover MP
+            msg = `你架起防禦姿態，回復了 MP。`;
+            audioSys.sfx.select();
+        } 
+        else if (idx === 3) { // Item
+            if (p.potions > 0) {
+                p.potions--;
+                const heal = 50;
+                p.hp = Math.min(p.maxHp, p.hp + heal);
+                msg = `使用了修復補丁。HP 恢復 ${heal}。`;
+                audioSys.sfx.magic();
+            } else {
+                this.log("藥水已用盡！", "danger");
+                audioSys.sfx.blip();
+                return;
+            }
+        }
+
+        this.log(msg);
+        this.renderStatus();
+
+        // Check Win
+        if (e.hp <= 0) {
+            this.winBattle();
+            return;
+        }
+
+        // Enemy Turn
+        setTimeout(() => this.enemyTurn(), 800);
+    },
+
+    enemyTurn: function() {
+        const p = this.player;
+        const e = this.battle.enemy;
+        const w = GAME_DATA.weapons[p.weaponIdx];
+
+        let dmg = 0;
+        let pDef = p.baseDef + w.def;
+        if (this.battle.isDefending) pDef *= 2;
+
+        // Simple AI
+        let action = "attack";
+        if (e.name.includes("BOSS")) {
+            if (this.battle.enemyCharge) {
+                action = "charge_attack";
+            } else if (e.hp < e.maxHp * 0.5 && Math.random() > 0.6) {
+                action = "charge";
+            }
+        }
+
+        if (action === "charge") {
+            this.log(`警告：${e.name} 正在編譯毀滅性指令...`, "danger");
+            this.battle.enemyCharge = true;
+        } 
+        else if (action === "charge_attack") {
+            let baseDmg = e.atk * 2.5;
+            dmg = Math.max(0, baseDmg - pDef);
+            p.hp -= Math.floor(dmg);
+            this.log(`>>> ${e.name} 釋放溢出攻擊！造成 ${Math.floor(dmg)} 傷害！`, "danger");
+            this.battle.enemyCharge = false;
+            audioSys.sfx.hit();
+            this.shakeScreen();
+        }
+        else {
+            dmg = Math.max(1, e.atk - pDef);
+            p.hp -= Math.floor(dmg);
+            this.log(`${e.name} 攻擊了你，造成 ${Math.floor(dmg)} 傷害。`);
+            audioSys.sfx.hit();
+        }
+
+        this.battle.isDefending = false;
+        this.renderStatus();
+
+        if (p.hp <= 0) {
+            this.gameOver();
+        }
+    },
+
+    winBattle: function() {
+        const exp = this.battle.enemy.exp;
+        this.player.exp += exp;
+        audioSys.sfx.win();
+        this.log(`戰鬥勝利！獲得 ${exp} XP。`, "log-highlight");
+        
+        // Level Up Check
+        if (this.player.exp >= this.player.nextExp) {
+            this.player.lvl++;
+            this.player.maxHp += 20;
+            this.player.maxMp += 10;
+            this.player.baseAtk += 2;
+            this.player.baseDef += 1;
+            this.player.hp = this.player.maxHp;
+            this.player.mp = this.player.maxMp;
+            this.player.nextExp = Math.floor(this.player.nextExp * 1.5);
+            this.log(`升級！等級提升至 LV ${this.player.lvl}`, "log-highlight");
+        }
+
+        setTimeout(() => {
+            this.state = 'EXPLORE'; // Return to simplified explore state directly (linear)
+            this.nextChapter();
+        }, 1500);
+    },
+
+    gameOver: function() {
+        this.state = 'GAMEOVER';
+        audioSys.sfx.die();
+        this.setArt(`
+      X X
+    __--__
+   /      \\
+   | DEAD |
+   \\______/`);
+        this.log("系統崩潰。你的數據已被抹除。", "danger");
+        this.updateButtons(['重啟', '', '', '']);
+    },
+
+    // 休息與裝備
+    rest: function() {
+        this.player.hp = this.player.maxHp;
+        this.player.mp = this.player.maxMp;
+        this.log("你重組了數據碎片。HP/MP 全滿。", "log-highlight");
+        audioSys.sfx.magic();
+        this.renderStatus();
+    },
+
+    openEquipMenu: function() {
+        this.state = 'MENU';
+        document.getElementById('menu-overlay').style.display = 'flex';
+        let html = `<div class="menu-title">選擇裝備</div>`;
+        GAME_DATA.weapons.forEach((w, idx) => {
+            const selected = this.player.weaponIdx === idx ? 'selected' : '';
+            html += `<div class="menu-option ${selected}" onclick="game.handleInput(${idx})">
+                ${w.name} [ATK:${w.atk > 0 ? '+'+w.atk : w.atk} DEF:${w.def} SPD:${w.spd}]<br>
+                <small>${w.desc}</small>
+            </div>`;
+        });
+        document.getElementById('menu-content').innerHTML = html;
+    },
+
+    changeEquip: function(idx) {
+        this.player.weaponIdx = idx;
+        this.log(`已裝備：${GAME_DATA.weapons[idx].name}`);
+        this.state = 'EXPLORE';
+        document.getElementById('menu-overlay').style.display = 'none';
+        this.renderStatus();
+    },
+
+    // UI Utilities
+    log: function(msg, className = "") {
+        const area = document.getElementById('log-area');
+        const entry = document.createElement('div');
+        entry.className = `log-entry new ${className}`;
+        entry.innerHTML = `> ${msg}`;
+        area.appendChild(entry);
+        
+        // Auto scroll
+        area.scrollTop = area.scrollHeight;
+
+        // Limit entries
+        if (area.children.length > 20) {
+            area.removeChild(area.children[0]);
+        }
+    },
+
+    typewriter: function(text) {
+        const area = document.getElementById('log-area');
+        area.innerHTML = ''; // Clear previous
+        let i = 0;
+        const speed = 30; 
+        
+        function type() {
+            if (i < text.length) {
+                area.innerHTML += text.charAt(i) === '\n' ? '<br>' : text.charAt(i);
+                area.scrollTop = area.scrollHeight;
+                i++;
+                if (i % 3 === 0) audioSys.sfx.blip(); // Typo sound
+                setTimeout(type, speed);
+            }
+        }
+        type();
+    },
+
+    setArt: function(art) {
+        document.getElementById('scene-art').textContent = art;
+        document.getElementById('scene-text').textContent = "";
+    },
+
+    shakeScreen: function() {
+        const el = document.getElementById('game-container');
+        el.classList.add('shake');
+        el.classList.add('flash');
+        setTimeout(() => {
+            el.classList.remove('shake');
+            el.classList.remove('flash');
+        }, 500);
+    },
+
+    updateButtons: function(labels) {
+        for(let i=0; i<4; i++) {
+            const btn = document.getElementById(`btn-${i+1}`);
+            btn.innerHTML = labels[i];
+            btn.disabled = labels[i] === '';
+            btn.style.opacity = labels[i] === '' ? 0 : 1;
+        }
+    },
+
+    renderStatus: function() {
+        // Update Bars
+        const p = this.player;
+        const hpPct = (p.hp / p.maxHp) * 100;
+        const mpPct = (p.mp / p.maxMp) * 100;
+        
+        document.getElementById('ui-hp-bar').style.width = `${hpPct}%`;
+        document.getElementById('ui-mp-bar').style.width = `${mpPct}%`;
+        
+        document.getElementById('ui-hp-text').innerText = `${p.hp}/${p.maxHp}`;
+        document.getElementById('ui-mp-text').innerText = `${p.mp}/${p.maxMp}`;
+        document.getElementById('ui-lvl').innerText = p.lvl;
+        
+        const wName = GAME_DATA.weapons[p.weaponIdx].name;
+        document.getElementById('ui-job').innerText = `騎士 [${wName}]`;
+    }
+};
+
+// Start
+window.onload = function() {
+    audioSys.init(); // Try init audio context
+    game.init();
+};
+
+</script>
+</body>
+</html>

@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCT-99: Terminal v2.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        :root {
+            --term-green: #33ff00;
+            --term-dim: #1a8000;
+            --term-bg: #0a0a0a;
+            --term-alert: #ff3333;
+            --term-warn: #ffff33;
+        }
+
+        body {
+            background-color: #000;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'VT323', monospace;
+            color: var(--term-green);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+        }
+
+        /* 外殼與螢幕效果 */
+        #crt-frame {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 900px;
+            max-height: 800px;
+            background-color: var(--term-bg);
+            border: 2px solid #333;
+            box-shadow: 0 0 50px rgba(51, 255, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 掃描線特效 */
+        #crt-frame::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 20;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* 文字發光 */
+        .glow { text-shadow: 0 0 5px var(--term-dim); }
+        .text-alert { color: var(--term-alert); text-shadow: 0 0 5px #500; }
+        .text-warn { color: var(--term-warn); text-shadow: 0 0 5px #550; }
+
+        /* UI 佈局 */
+        header {
+            background: #001100;
+            padding: 10px 20px;
+            border-bottom: 2px solid var(--term-dim);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #viewport {
+            flex-grow: 1;
+            padding: 20px;
+            font-size: 1.2rem;
+            line-height: 1.1;
+            white-space: pre;
+            overflow: hidden;
+            border-bottom: 1px solid var(--term-dim);
+            position: relative;
+        }
+
+        #log-panel {
+            height: 150px;
+            background: #000;
+            padding: 10px 20px;
+            overflow-y: auto;
+            font-size: 1rem;
+            border-bottom: 1px solid var(--term-dim);
+            display: flex;
+            flex-direction: column-reverse;
+        }
+
+        /* 控制面板 (新功能) */
+        #control-panel {
+            padding: 15px;
+            background: #0f1a0f;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .cmd-btn {
+            background: #002200;
+            border: 1px solid var(--term-green);
+            color: var(--term-green);
+            padding: 10px;
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.1s;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cmd-btn span.desc {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 2px;
+        }
+
+        .cmd-btn:hover {
+            background: var(--term-green);
+            color: #000;
+            box-shadow: 0 0 10px var(--term-green);
+        }
+
+        .cmd-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .cmd-btn:disabled {
+            border-color: #333;
+            color: #333;
+            cursor: not-allowed;
+            background: #000;
+        }
+
+        /* 狀態條動畫 */
+        .bar-container {
+            width: 100px;
+            height: 10px;
+            background: #111;
+            border: 1px solid var(--term-dim);
+            display: inline-block;
+            margin-left: 5px;
+        }
+        .bar-fill { height: 100%; transition: width 0.5s; }
+
+        /* 覆蓋層 */
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .typewriter::after { content: "▋"; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+    </style>
+</head>
+<body>
+
+    <div id="crt-frame">
+        <header>
+            <div class="flex flex-col">
+                <span class="text-xl font-bold">SCT-99 控制台</span>
+                <span class="text-sm opacity-70">任務: 存活至 06:00</span>
+            </div>
+            
+            <div class="flex gap-6 text-lg">
+                <div class="flex flex-col items-end">
+                    <div title="電力耗盡 = 防禦失效">
+                        電力 <span id="power-text">100%</span>
+                        <div class="bar-container"><div id="power-bar" class="bar-fill bg-[var(--term-green)]" style="width: 100%"></div></div>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end">
+                    <div title="過高 = 遊戲結束">
+                        精神 <span id="san-text">100%</span>
+                        <div class="bar-container"><div id="san-bar" class="bar-fill bg-[var(--term-green)]" style="width: 100%"></div></div>
+                    </div>
+                </div>
+                <div class="text-3xl border-l pl-4 border-[var(--term-dim)]" id="clock">
+                    00:00
+                </div>
+            </div>
+        </header>
+
+        <div id="viewport" class="glow">
+            <!-- ASCII Art 顯示區 -->
+        </div>
+
+        <div id="log-panel">
+            <div class="opacity-50">>> 等待系統啟動...</div>
+        </div>
+
+        <!-- 新增：視覺化控制面板 -->
+        <div id="control-panel">
+            <button class="cmd-btn" onclick="userInput('SCAN')" id="btn-scan">
+                SCAN (掃描)
+                <span class="desc">檢測異常 (-2 電力)</span>
+            </button>
+            <button class="cmd-btn" onclick="userInput('SIGNAL')" id="btn-signal">
+                SIGNAL (訊號)
+                <span class="desc">放行列車 (-5 電力)</span>
+            </button>
+             <button class="cmd-btn" onclick="userInput('CAM')" id="btn-cam">
+                CAM (鏡頭)
+                <span class="desc">切換 月台/隧道</span>
+            </button>
+            <button class="cmd-btn" onclick="userInput('CLEAR')" id="btn-clear">
+                CLEAR (清除)
+                <span class="desc">消除鬼影 (-15 電力)</span>
+            </button>
+            <button class="cmd-btn" onclick="userInput('FIX')" id="btn-fix">
+                FIX (維修)
+                <span class="desc">+20 電力 / 花費30分</span>
+            </button>
+            <button class="cmd-btn" onclick="userInput('REPORT')" id="btn-report">
+                REPORT (報告)
+                <span class="desc">穩定精神 (-2 壓力)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 啟動/結局 畫面 -->
+    <div id="overlay">
+        <h1 class="text-6xl text-[var(--term-green)] mb-4 glow">STATION CONTROL</h1>
+        <div id="overlay-content" class="max-w-md">
+            <p class="text-xl mb-8 typewriter">系統連線中... 點擊以開始值班</p>
+        </div>
+        <button id="start-btn" class="cmd-btn px-8 py-2 text-2xl mt-4">啟動系統</button>
+    </div>
+
+    <script>
+        // --- 遊戲設定 ---
+        const GAME_SPEED = 1000; // 1秒 = 1分鐘
+        const END_TIME = 6 * 60; // 06:00
+        
+        let state = {
+            time: 0, 
+            power: 100,
+            sanity: 100, // 100 is healthy, 0 is insane
+            active: false,
+            tutorialMode: true,
+            tutorialStep: 0,
+            view: 'PLATFORM', // PLATFORM or TUNNEL
+            trainWaiting: false,
+            anomaly: null, // null, 'GHOST', 'STATIC'
+            glitching: false
+        };
+
+        const AUDIO = new (window.AudioContext || window.webkitAudioContext)();
+
+        // --- ASCII 素材 ---
+        const SCENES = {
+            PLATFORM: [
+                " [攝影機 01: 中央月台] ---------------------- REC ●",
+                "                                                ",
+                "      /|\\      ___________                  ",
+                "     | | |    |  =======  |    [ 號誌燈: ?? ] ",
+                "     | | |    | |       | |                   ",
+                "    _| |_|____| |_______| |___________________",
+                "   /          |___________|                   \\",
+                "  /____________________________________________\\",
+                "  ||||||||||||||||||||||||||||||||||||||||||||||",
+                "  軌道 A: [清空]             軌道 B: [清空]      "
+            ],
+            PLATFORM_TRAIN: [
+                " [攝影機 01: 中央月台] ---------------------- REC ●",
+                "                                                ",
+                "      /|\\      ___________     [ 號誌燈: 紅色 ] ",
+                "     | | |    |  =======  |    __警告:列車___  ",
+                "     | | |    | | [099] | |   | [] [] [] [] | ",
+                "    _| |_|____| |_______| |___|_____________|_",
+                "   /          |___________|   / o-o --- o-o / ",
+                "  /__________________________/_______________\\",
+                "  ||||||||||||||||||||||||||||||||||||||||||||||",
+                "  軌道 A: [等待進站]         軌道 B: [清空]      "
+            ],
+            PLATFORM_GHOST: [
+                " [攝影機 01: 中央月台] ---------------------- ERR !",
+                "      ...看不清...                              ",
+                "      /|\\      ___________                  ",
+                "     | | |    |  =======  |       (o  o)      ",
+                "     | | |    | |       | |         ||        ",
+                "    _| |_|____| |_______| |_________||________",
+                "   /          |___________|         ||        \\",
+                "  /_________________________________||_________\\",
+                "  ||||||||||||||||||||||||||||||||||||||||||||||",
+                "  軌道 A: [異物偵測]         軌道 B: [不明]      "
+            ],
+            TUNNEL: [
+                " [攝影機 02: 維修隧道] ---------------------- REC ●",
+                " ______________________________________________ ",
+                " |                                            | ",
+                " |     [配電盤]            [維修通道]         | ",
+                " |      [====]              |      |          | ",
+                " |      [====]              |      |          | ",
+                " |__________________________|______|__________| ",
+                "                                                ",
+                " 感測器狀態: 運作中                             ",
+                " 濕度: 85% | 溫度: 18°C                         "
+            ]
+        };
+
+        // --- 核心系統 ---
+
+        function init() {
+            document.getElementById('start-btn').addEventListener('click', startGame);
+            updateUI();
+        }
+
+        function startGame() {
+            if (AUDIO.state === 'suspended') AUDIO.resume();
+            document.getElementById('overlay').style.display = 'none';
+            state.active = true;
+            
+            // 開始新手教學
+            if (state.tutorialMode) {
+                runTutorial(0);
+            } else {
+                gameLoop();
+            }
+        }
+
+        // 簡單的教學腳本
+        function runTutorial(step) {
+            state.tutorialStep = step;
+            const logPanel = document.getElementById('log-panel');
+            
+            // 鎖定所有按鈕，只開放需要的
+            const btns = document.querySelectorAll('.cmd-btn');
+            btns.forEach(b => b.disabled = true);
+
+            switch(step) {
+                case 0:
+                    log(">> [系統] 初始化完成。歡迎，操作員。", "info");
+                    log(">> [教學 1/3] 請點擊 'SCAN' 確認月台狀況。", "warn");
+                    document.getElementById('btn-scan').disabled = false;
+                    break;
+                case 1:
+                    log(">> [教學 2/3] 很好。掃描會消耗電力。", "info");
+                    log(">> [教學 2/3] 測試鏡頭切換。點擊 'CAM'。", "warn");
+                    document.getElementById('btn-cam').disabled = false;
+                    break;
+                case 2:
+                    log(">> [教學 3/3] 隧道無異常。請切回月台。", "info");
+                    document.getElementById('btn-cam').disabled = false;
+                    break;
+                case 3:
+                    state.tutorialMode = false;
+                    btns.forEach(b => b.disabled = false); // 解鎖全部
+                    log(">> [系統] 教學結束。請存活至 06:00。", "success");
+                    log(">> [提示] 若有列車出現，請用 'SIGNAL' 放行。", "info");
+                    log(">> [提示] 若出現詭異黑影，請用 'CLEAR' 清除。", "info");
+                    gameLoop();
+                    break;
+            }
+        }
+
+        // --- 遊戲迴圈 ---
+        function gameLoop() {
+            if (!state.active || state.tutorialMode) return;
+
+            // 時間流逝
+            state.time++;
+            updateTime();
+
+            // 資源消耗
+            if (state.time % 10 === 0) state.power = Math.max(0, state.power - 1);
+
+            // 隨機事件
+            handleRandomEvents();
+
+            // 精神值檢查
+            checkSanity();
+
+            // 勝利條件
+            if (state.time >= END_TIME) {
+                endGame(true);
+                return;
+            }
+
+            // 失敗條件
+            if (state.power <= 0) endGame(false, "電力耗盡：車站防禦系統離線。黑暗吞噬了一切。");
+            if (state.sanity <= 0) endGame(false, "精神崩潰：你無法再分辨現實與幻覺。");
+
+            updateUI();
+            
+            // 循環
+            setTimeout(gameLoop, GAME_SPEED / 5); // 稍微加快遊戲節奏
+        }
+
+        function handleRandomEvents() {
+            const rng = Math.random();
+            const dangerLevel = state.time / END_TIME; // 隨時間變危險
+
+            // 列車事件 (優先度高)
+            if (!state.trainWaiting && !state.anomaly && rng < 0.05) {
+                state.trainWaiting = true;
+                playSound('alert');
+                log(">> [警報] 列車接近中！請立即發送信號 (SIGNAL)。", "alert");
+            }
+
+            // 鬼影事件 (與時間成正比)
+            if (!state.anomaly && !state.trainWaiting && rng < (0.01 + dangerLevel * 0.05)) {
+                state.anomaly = 'GHOST';
+                playSound('glitch');
+                log(">> [警告] 監控畫面偵測到未知實體...", "warn");
+                triggerGlitch();
+            }
+
+            // 若有異常未處理，持續扣除精神
+            if (state.trainWaiting && state.time % 5 === 0) {
+                state.sanity -= 2;
+                log(">> [系統] 駕駛正在等待訊號...", "warn");
+            }
+            if (state.anomaly && state.time % 5 === 0) {
+                state.sanity -= 5; // 鬼影扣很重
+                log(">> [警告] 異常實體正在接近控制室！", "alert");
+            }
+        }
+
+        function checkSanity() {
+            // 自動恢復一點點精神 (如果沒事發生)
+            if (!state.trainWaiting && !state.anomaly && state.sanity < 100 && state.time % 20 === 0) {
+                state.sanity += 1;
+            }
+        }
+
+        // --- 輸入處理 ---
+        window.userInput = function(cmd) {
+            if (!state.active) return;
+            
+            playSound('click');
+
+            // 教學模式攔截
+            if (state.tutorialMode) {
+                if (cmd === 'SCAN' && state.tutorialStep === 0) {
+                    processCommand(cmd);
+                    setTimeout(() => runTutorial(1), 1000);
+                } else if (cmd === 'CAM' && state.tutorialStep === 1) {
+                    processCommand(cmd);
+                    setTimeout(() => runTutorial(2), 1000);
+                } else if (cmd === 'CAM' && state.tutorialStep === 2) {
+                    processCommand(cmd);
+                    setTimeout(() => runTutorial(3), 1000);
+                }
+                return;
+            }
+
+            processCommand(cmd);
+        }
+
+        function processCommand(cmd) {
+            log(`> 執行指令: ${cmd}`, "cmd");
+
+            switch(cmd) {
+                case 'SCAN':
+                    if (state.power < 2) {
+                        log(">> [錯誤] 電力不足！無法掃描。", "alert");
+                        return;
+                    }
+                    state.power -= 2;
+                    log(">> 正在掃描區域...", "info");
+                    
+                    setTimeout(() => {
+                        if (state.anomaly) log(`>> [掃描結果] 偵測到靈體反應！請使用 CLEAR。`, "alert");
+                        else if (state.trainWaiting) log(">> [掃描結果] 列車等待進站中。", "warn");
+                        else log(">> [掃描結果] 區域讀數正常。", "success");
+                    }, 500);
+                    break;
+
+                case 'SIGNAL':
+                    if (state.power < 5) {
+                        log(">> [錯誤] 電力不足！無法發送信號。", "alert");
+                        return;
+                    }
+                    if (state.trainWaiting) {
+                        state.power -= 5;
+                        state.trainWaiting = false;
+                        state.sanity = Math.min(100, state.sanity + 5); // 成功處理任務回san
+                        log(">> [成功] 訊號綠燈。列車安全離站。", "success");
+                        playSound('success');
+                    } else {
+                        log(">> [無效] 目前無列車等待訊號。", "info");
+                    }
+                    break;
+
+                case 'CLEAR':
+                    if (state.power < 15) {
+                        log(">> [嚴重錯誤] 電力不足！無法啟動驅靈程序。", "alert");
+                        return;
+                    }
+                    state.power -= 15;
+                    if (state.anomaly) {
+                        state.anomaly = null;
+                        state.sanity = Math.min(100, state.sanity + 10);
+                        log(">> [系統] 異常實體已清除。現實指數回穩。", "success");
+                        playSound('success');
+                    } else {
+                        log(">> [警告] 未偵測到目標。電力已浪費。", "warn");
+                    }
+                    break;
+
+                case 'CAM':
+                    state.view = (state.view === 'PLATFORM') ? 'TUNNEL' : 'PLATFORM';
+                    log(`>> 鏡頭切換至: ${state.view === 'PLATFORM' ? '中央月台' : '維修隧道'}`, "info");
+                    break;
+
+                case 'FIX':
+                    log(">> [維修] 系統維護中... 跳過 30 分鐘。", "info");
+                    state.time += 30;
+                    state.power = Math.min(100, state.power + 20);
+                    break;
+
+                case 'REPORT':
+                    state.sanity = Math.min(100, state.sanity + 2);
+                    log(">> [紀錄] 向總部發送例行報告。心情稍微平復。", "info");
+                    break;
+            }
+            updateUI();
+        }
+
+        // --- UI 更新 ---
+        function updateUI() {
+            // 更新 ASCII 畫面
+            const viewport = document.getElementById('viewport');
+            let art = SCENES[state.view];
+            
+            if (state.view === 'PLATFORM') {
+                if (state.anomaly === 'GHOST') art = SCENES.PLATFORM_GHOST;
+                else if (state.trainWaiting) art = SCENES.PLATFORM_TRAIN;
+            }
+
+            // 讓字串動起來 (雜訊效果)
+            if (state.glitching) {
+                viewport.innerHTML = art.map(line => 
+                    line.split('').map(c => Math.random() > 0.9 ? String.fromCharCode(33+Math.random()*60) : c).join('')
+                ).join('\n');
+            } else {
+                viewport.innerText = art.join('\n');
+            }
+
+            // 更新數值條
+            updateBar('power', state.power);
+            updateBar('san', state.sanity);
+        }
+
+        function updateBar(id, val) {
+            const bar = document.getElementById(`${id}-bar`);
+            const text = document.getElementById(`${id}-text`);
+            bar.style.width = `${Math.max(0, val)}%`;
+            text.innerText = `${Math.floor(val)}%`;
+
+            // 顏色邏輯
+            if (val < 30) {
+                bar.className = "bar-fill bg-[var(--term-alert)]";
+                text.className = "text-alert blink";
+            } else if (val < 60) {
+                bar.className = "bar-fill bg-[var(--term-warn)]";
+                text.className = "text-warn";
+            } else {
+                bar.className = "bar-fill bg-[var(--term-green)]";
+                text.className = "text-[var(--term-green)]";
+            }
+        }
+
+        function updateTime() {
+            let h = Math.floor(state.time / 60);
+            let m = state.time % 60;
+            document.getElementById('clock').innerText = 
+                `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+
+        function log(msg, type) {
+            const panel = document.getElementById('log-panel');
+            const div = document.createElement('div');
+            
+            // 加上時間戳記
+            let h = Math.floor(state.time / 60);
+            let m = state.time % 60;
+            const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+            div.innerText = `[${timeStr}] ${msg}`;
+            
+            if (type === 'alert') div.className = "text-alert font-bold";
+            else if (type === 'warn') div.className = "text-warn";
+            else if (type === 'success') div.className = "text-[var(--term-green)]";
+            else if (type === 'cmd') div.className = "opacity-50 border-l-2 border-gray-500 pl-2";
+            else div.className = "opacity-80";
+
+            panel.prepend(div);
+            if (panel.children.length > 30) panel.lastChild.remove();
+        }
+
+        // --- 音效與特效 ---
+        function playSound(type) {
+            if (AUDIO.state === 'suspended') return;
+            const osc = AUDIO.createOscillator();
+            const gain = AUDIO.createGain();
+            osc.connect(gain);
+            gain.connect(AUDIO.destination);
+            
+            const now = AUDIO.currentTime;
+
+            if (type === 'click') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'alert') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.linearRampToValueAtTime(880, now + 0.3);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'success') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(880, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'glitch') {
+                // Noise
+                const bufferSize = AUDIO.sampleRate * 0.5;
+                const buffer = AUDIO.createBuffer(1, bufferSize, AUDIO.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = AUDIO.createBufferSource();
+                noise.buffer = buffer;
+                const noiseGain = AUDIO.createGain();
+                noiseGain.gain.value = 0.1;
+                noise.connect(noiseGain).connect(AUDIO.destination);
+                noise.start(now);
+            }
+        }
+
+        function triggerGlitch() {
+            state.glitching = true;
+            document.body.style.filter = "hue-rotate(90deg) contrast(200%)";
+            setTimeout(() => {
+                state.glitching = false;
+                document.body.style.filter = "none";
+                updateUI();
+            }, 300);
+        }
+
+        function endGame(win, reason) {
+            state.active = false;
+            document.getElementById('overlay').style.display = 'flex';
+            const title = win ? "任務完成" : "訊號中斷";
+            const color = win ? "var(--term-green)" : "var(--term-alert)";
+            
+            document.getElementById('overlay').innerHTML = `
+                <h1 style="color: ${color}" class="text-6xl mb-4 glow">${title}</h1>
+                <p class="text-xl max-w-lg mb-8">${win ? "日出已至。雖然有些事情無法解釋，但你活下來了。" : reason}</p>
+                <button onclick="location.reload()" class="cmd-btn px-8 py-2 text-2xl">重啟系統</button>
+            `;
+        }
+
+        init();
+
+    </script>
+</body>
+</html>
