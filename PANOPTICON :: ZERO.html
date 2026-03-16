@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PANOPTICON // ZERO</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --p:    #1aff6e;
+  --pdim: #0a5c28;
+  --pbg:  #030a03;
+  --alert:#ff2020;
+  --warn: #ffaa00;
+  --zero: #40ffaa;
+  --unk:  #c8c8c8;
+  --bg:   #020402;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;
+  font-family:'VT323',monospace;color:var(--p);}
+
+/* ══ BOOT ══════════════════════════════════════════════ */
+#boot{
+  position:fixed;inset:0;background:#000;z-index:300;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+}
+#boot-ascii{
+  font-family:'Share Tech Mono',monospace;
+  font-size:clamp(0.38rem,0.9vw,0.62rem);
+  color:#0a3a18;line-height:1.1;margin-bottom:18px;
+  white-space:pre;text-align:center;letter-spacing:0.05em;
+}
+#boot-title{
+  font-size:clamp(1.4rem,4vw,2.8rem);letter-spacing:0.45em;
+  color:var(--p);text-shadow:0 0 22px var(--p);margin-bottom:4px;
+}
+#boot-sub{
+  font-family:'Share Tech Mono',monospace;
+  font-size:clamp(0.6rem,1.2vw,0.8rem);
+  color:var(--pdim);letter-spacing:0.4em;margin-bottom:32px;
+}
+#boot-terminal{
+  font-family:'Share Tech Mono',monospace;
+  font-size:clamp(0.6rem,1.1vw,0.75rem);
+  color:#0f5a25;
+  width:min(560px,88vw);height:180px;
+  overflow:hidden;border-left:2px solid #0a3a18;
+  padding-left:14px;margin-bottom:26px;
+}
+#boot-terminal .line{opacity:0;animation:bline 0.08s forwards;}
+@keyframes bline{to{opacity:1;}}
+.t-warn{color:#6a4a00!important;}
+.t-err{color:#6a0000!important;}
+.t-zero{color:#1a6a45!important;}
+#boot-bar-wrap{width:min(420px,80vw);margin-bottom:28px;}
+#boot-bar-label{
+  display:flex;justify-content:space-between;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.72rem;color:var(--pdim);margin-bottom:6px;
+}
+#boot-bar-bg{height:2px;background:#001800;}
+#boot-bar-fill{height:100%;background:var(--p);width:0%;box-shadow:0 0 8px var(--p);}
+#boot-actions{
+  display:flex;flex-direction:column;gap:14px;align-items:center;
+  opacity:0;transition:opacity 0.6s;
+}
+#boot-actions.show{opacity:1;}
+.boot-btn{
+  background:transparent;border:1px solid var(--p);color:var(--p);
+  font-family:'VT323',monospace;font-size:clamp(1.1rem,2.2vw,1.5rem);
+  padding:10px 44px;cursor:pointer;letter-spacing:0.2em;
+  position:relative;overflow:hidden;transition:color 0.12s;
+}
+.boot-btn::before{
+  content:'';position:absolute;inset:0;background:var(--p);
+  transform:scaleX(0);transform-origin:left;transition:transform 0.14s;
+}
+.boot-btn:hover::before{transform:scaleX(1);}
+.boot-btn:hover{color:#000;}
+.boot-btn span{position:relative;z-index:1;}
+#boot-opts{
+  display:flex;gap:24px;
+  font-family:'Share Tech Mono',monospace;font-size:0.72rem;
+  color:#334;
+}
+#boot-opts label{cursor:pointer;color:var(--pdim);}
+#boot-opts input[type=checkbox]{accent-color:var(--p);}
+#boot-warn{
+  font-family:'Share Tech Mono',monospace;font-size:0.62rem;
+  color:#1a2a1a;margin-top:18px;text-align:center;
+  max-width:420px;line-height:1.7;
+}
+
+/* ══ MAIN LAYOUT ════════════════════════════════════════ */
+#wrap{width:100%;height:100%;display:flex;justify-content:center;align-items:center;}
+#crt{
+  position:relative;width:100%;height:100%;
+  max-width:min(1240px,calc(100vh * 1.45));
+  aspect-ratio:16/10;background:var(--bg);overflow:hidden;
+}
+#crt::before{
+  content:'';position:absolute;inset:0;z-index:50;pointer-events:none;
+  background:repeating-linear-gradient(0deg,
+    rgba(0,0,0,0) 0,rgba(0,0,0,0) 2px,
+    rgba(0,0,0,0.1) 2px,rgba(0,0,0,0.1) 4px);
+}
+#crt::after{
+  content:'';position:absolute;inset:0;z-index:51;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 50%,transparent 52%,rgba(0,0,0,0.72) 100%);
+}
+#crt.flicker{animation:flk 0.1s infinite;}
+@keyframes flk{0%{opacity:0.98;}50%{opacity:0.955;}100%{opacity:0.98;}}
+
+#dangervin{
+  position:absolute;inset:0;z-index:52;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 50%,transparent 38%,rgba(255,0,0,0.12) 100%);
+  opacity:0;transition:opacity 0.6s;
+}
+#staticov{
+  position:absolute;inset:0;z-index:6;pointer-events:none;opacity:0;
+  background:repeating-linear-gradient(0deg,
+    rgba(255,255,255,0.025) 0,rgba(255,255,255,0.025) 1px,
+    transparent 1px,transparent 3px);
+  transition:opacity 0.4s;
+}
+
+#ui{
+  position:relative;z-index:10;width:100%;height:100%;
+  display:grid;
+  grid-template-columns:1fr 196px;
+  grid-template-rows:42px 1fr 116px;
+  padding:12px;gap:9px;
+}
+
+/* ── HEADER ─────────────────────────────────────────── */
+#hdr{
+  grid-column:1/3;
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid var(--pdim);padding-bottom:7px;
+}
+#hdr-l{display:flex;gap:18px;align-items:baseline;}
+#hdr-title{
+  font-size:clamp(0.85rem,1.7vw,1.15rem);
+  letter-spacing:0.35em;color:var(--p);
+  text-shadow:0 0 8px var(--p);
+}
+#hdr-id{
+  font-family:'Share Tech Mono',monospace;
+  font-size:clamp(0.58rem,1vw,0.75rem);color:var(--pdim);
+}
+#hdr-r{display:flex;gap:14px;align-items:center;}
+#phase-tag{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.62rem;color:var(--warn);
+  border:1px solid #3a2a00;padding:1px 7px;
+  display:none;animation:ptag 1.5s ease-in-out infinite alternate;
+}
+@keyframes ptag{from{opacity:0.6;}to{opacity:1;}}
+#clock{
+  font-family:'Share Tech Mono',monospace;
+  font-size:clamp(0.8rem,1.3vw,1rem);
+  letter-spacing:0.12em;
+}
+.hbtn{
+  background:transparent;border:1px solid #222;color:#444;
+  font-family:'VT323',monospace;font-size:0.85rem;
+  padding:1px 8px;cursor:pointer;transition:all 0.1s;letter-spacing:0.1em;
+}
+.hbtn:hover{border-color:var(--pdim);color:var(--pdim);}
+
+/* ── VIEWPORT ────────────────────────────────────────── */
+#vp{
+  grid-column:1/2;grid-row:2/3;
+  position:relative;border:1px solid var(--pdim);background:#000;overflow:hidden;
+}
+#feed{width:100%;height:100%;display:block;}
+#camhud{position:absolute;inset:0;pointer-events:none;z-index:5;}
+#camlabel{
+  position:absolute;top:9px;left:11px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:clamp(0.7rem,1.3vw,0.88rem);
+  color:var(--p);background:rgba(0,0,0,0.65);
+  padding:2px 8px;border:1px solid var(--pdim);letter-spacing:0.12em;
+}
+#recdot{
+  position:absolute;top:9px;right:11px;
+  display:flex;align-items:center;gap:5px;
+  font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:#ff3333;
+}
+.reddot{
+  width:7px;height:7px;border-radius:50%;background:#ff3333;
+  animation:rdot 1.3s ease-in-out infinite;
+}
+@keyframes rdot{0%,100%{opacity:1;}50%{opacity:0.15;}}
+#ts{
+  position:absolute;bottom:9px;left:11px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:clamp(0.55rem,0.95vw,0.72rem);
+  color:rgba(26,255,110,0.35);letter-spacing:0.08em;
+}
+#camnum{
+  position:absolute;bottom:9px;right:11px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.62rem;color:rgba(26,255,110,0.25);
+}
+#fb{
+  position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;font-size:clamp(1.8rem,4.5vw,3.5rem);
+  letter-spacing:0.3em;font-weight:bold;
+  opacity:0;pointer-events:none;transition:opacity 0.35s;z-index:8;
+}
+#vp.anom-on{animation:bpulse 1.2s ease-in-out infinite alternate;}
+@keyframes bpulse{
+  from{box-shadow:inset 0 0 0 rgba(255,32,32,0);}
+  to{box-shadow:inset 0 0 18px rgba(255,32,32,0.12);}
+}
+
+/* ── SIDE PANEL ──────────────────────────────────────── */
+#side{
+  grid-column:2/3;grid-row:2/4;
+  display:flex;flex-direction:column;gap:8px;
+}
+.sec{border:1px solid var(--pdim);background:rgba(0,12,0,0.85);padding:8px;}
+.sectitle{
+  font-size:0.65rem;color:var(--pdim);letter-spacing:0.18em;
+  font-family:'Share Tech Mono',monospace;
+  border-bottom:1px solid #080f08;padding-bottom:4px;margin-bottom:7px;
+}
+#rbtn{
+  width:100%;background:transparent;border:1px solid var(--alert);
+  color:var(--alert);font-family:'VT323',monospace;
+  font-size:clamp(0.95rem,1.9vw,1.3rem);letter-spacing:0.1em;
+  padding:13px 8px;cursor:pointer;transition:color 0.1s;
+  text-shadow:0 0 7px rgba(255,32,32,0.35);
+  position:relative;overflow:hidden;
+}
+#rbtn::before{
+  content:'';position:absolute;inset:0;background:var(--alert);
+  transform:scaleX(0);transform-origin:left;transition:transform 0.13s;
+}
+#rbtn:hover::before{transform:scaleX(1);}
+#rbtn:hover{color:#000;text-shadow:none;}
+#rbtn span{position:relative;z-index:1;}
+#rbtn:disabled{opacity:0.25;cursor:not-allowed;pointer-events:none;}
+#rbtn.ready{animation:rpulse 0.9s ease-in-out infinite alternate;}
+@keyframes rpulse{
+  from{box-shadow:0 0 0 rgba(255,32,32,0);}
+  to{box-shadow:0 0 14px rgba(255,32,32,0.55);border-color:#ff5555;}
+}
+#sbhint{text-align:center;font-size:0.58rem;color:#222;
+  font-family:'Share Tech Mono',monospace;margin-top:3px;}
+
+#intlabel{
+  display:flex;justify-content:space-between;
+  font-size:0.68rem;font-family:'Share Tech Mono',monospace;
+}
+#intpct{color:var(--p);}
+.barbg{height:5px;background:#001200;border:1px solid #081808;margin-top:5px;overflow:hidden;}
+#intfill{height:100%;background:var(--p);transition:width 0.35s;box-shadow:0 0 5px var(--p);}
+#intfill.crit{background:var(--alert);box-shadow:0 0 5px var(--alert);}
+
+#scoreval{
+  font-size:clamp(1.4rem,2.8vw,1.9rem);text-align:center;
+  color:var(--p);text-shadow:0 0 9px var(--p);
+}
+#scorelbl{
+  font-size:0.6rem;color:var(--pdim);
+  font-family:'Share Tech Mono',monospace;text-align:center;
+}
+
+.cbtn{
+  width:100%;background:transparent;border:1px solid #162016;
+  color:#1f5c1f;font-family:'VT323',monospace;
+  font-size:clamp(0.78rem,1.4vw,0.98rem);letter-spacing:0.04em;
+  padding:5px 7px;cursor:pointer;text-align:left;
+  position:relative;transition:all 0.1s;overflow:hidden;
+}
+.cbtn:hover{border-color:var(--pdim);color:var(--p);}
+.cbtn.active{border-color:var(--p);color:var(--p);background:rgba(26,255,110,0.04);}
+.cbtn.dead{color:#1a1a1a;border-color:#0e0e0e;cursor:pointer;}
+.cbtn.dead:hover{border-color:#222;color:#2a2a2a;}
+
+/* ── CONSOLE ─────────────────────────────────────────── */
+#con{
+  grid-column:1/2;grid-row:3/4;
+  border:1px solid var(--pdim);background:rgba(0,10,0,0.9);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+#conhdr{
+  background:#000d00;padding:3px 9px;
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid #081808;flex-shrink:0;
+}
+#conhdr span{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.62rem;color:var(--pdim);letter-spacing:0.1em;
+}
+#fps{font-size:0.6rem;color:#152215;font-family:'Share Tech Mono',monospace;}
+#conbody{flex:1;padding:5px 9px;overflow-y:auto;display:flex;flex-direction:column;gap:1px;}
+#conbody::-webkit-scrollbar{width:2px;}
+#conbody::-webkit-scrollbar-thumb{background:var(--pdim);}
+.lg{
+  font-family:'Share Tech Mono',monospace;
+  font-size:clamp(0.6rem,1.05vw,0.78rem);line-height:1.32;
+  opacity:0;animation:lin 0.18s forwards;
+}
+@keyframes lin{to{opacity:1;}}
+.lg.sys{color:#0e4a1e;}
+.lg.zero{color:var(--zero);}
+.lg.warn{color:var(--warn);}
+.lg.alert{color:var(--alert);text-shadow:0 0 4px rgba(255,32,32,0.3);}
+.lg.unk{color:var(--unk);letter-spacing:0.04em;}
+.lg.glitch{
+  color:var(--alert);
+  animation:lin 0.18s forwards,gltxt 0.5s 0.25s forwards;
+}
+@keyframes gltxt{
+  0%{letter-spacing:0;}
+  25%{letter-spacing:5px;opacity:0.4;}
+  60%{letter-spacing:-1px;}
+  100%{letter-spacing:0;opacity:1;}
+}
+.lg.panic{
+  color:#ff0000;font-weight:bold;
+  animation:lin 0.18s forwards,pkpulse 0.4s 0.2s 3 alternate;
+}
+@keyframes pkpulse{from{opacity:1;}to{opacity:0.3;}}
+
+/* ── END SCREEN ──────────────────────────────────────── */
+#end{
+  position:absolute;inset:0;z-index:100;
+  background:rgba(0,0,0,0.94);
+  display:none;flex-direction:column;
+  justify-content:center;align-items:center;gap:16px;
+}
+#endtitle{font-size:clamp(1.8rem,4.5vw,3.2rem);letter-spacing:0.3em;text-align:center;}
+#endsub{
+  font-family:'Share Tech Mono',monospace;
+  font-size:clamp(0.68rem,1.3vw,0.88rem);
+  color:var(--pdim);text-align:center;
+}
+#endmsg{
+  font-family:'Share Tech Mono',monospace;
+  font-size:clamp(0.65rem,1.15vw,0.82rem);
+  color:#333;text-align:center;max-width:520px;line-height:1.7;
+  border:1px solid #111;padding:14px;background:#030303;
+}
+#endbtns{display:flex;gap:14px;margin-top:8px;}
+.endbtn{
+  background:transparent;border:1px solid var(--p);color:var(--p);
+  font-family:'VT323',monospace;font-size:1.2rem;padding:9px 32px;
+  cursor:pointer;letter-spacing:0.18em;transition:all 0.1s;
+}
+.endbtn:hover{background:var(--p);color:#000;}
+.endbtn.alt{border-color:#333;color:#444;}
+.endbtn.alt:hover{background:#333;color:#aaa;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ BOOT ══════════════════════ -->
+<div id="boot">
+<pre id="boot-ascii">
+ ██████╗  █████╗ ███╗   ██╗ ██████╗ ██████╗ ████████╗██╗ ██████╗ ██████╗ ███╗   ██╗
+ ██╔══██╗██╔══██╗████╗  ██║██╔═══██╗██╔══██╗╚══██╔══╝██║██╔════╝██╔═══██╗████╗  ██║
+ ██████╔╝███████║██╔██╗ ██║██║   ██║██████╔╝   ██║   ██║██║     ██║   ██║██╔██╗ ██║
+ ██╔═══╝ ██╔══██║██║╚██╗██║██║   ██║██╔═══╝    ██║   ██║██║     ██║   ██║██║╚██╗██║
+ ██║     ██║  ██║██║ ╚████║╚██████╔╝██║        ██║   ██║╚██████╗╚██████╔╝██║ ╚████║
+ ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝        ╚═╝   ╚═╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝
+</pre>
+  <div id="boot-title">PANOPTICON</div>
+  <div id="boot-sub">NODE&nbsp;884&nbsp;//&nbsp;SECTOR&nbsp;UNKNOWN&nbsp;//&nbsp;OPERATOR:&nbsp;ZERO</div>
+  <div id="boot-terminal"></div>
+  <div id="boot-bar-wrap">
+    <div id="boot-bar-label">
+      <span id="boot-stage">INITIALIZING</span>
+      <span id="boot-pct">0%</span>
+    </div>
+    <div id="boot-bar-bg"><div id="boot-bar-fill"></div></div>
+  </div>
+  <div id="boot-actions">
+    <button class="boot-btn" id="startbtn"><span>[ 建立連線 ESTABLISH CONNECTION ]</span></button>
+    <div id="boot-opts">
+      <label><input type="checkbox" id="flicker-ck">&nbsp;CRT閃爍（光敏警告）</label>
+      <label><input type="checkbox" id="mute-ck">&nbsp;靜音</label>
+    </div>
+    <div id="boot-warn">
+      ⚠ 未授權存取政府監視網路屬於刑事犯罪。<br>
+      本工具僅供研究用途。ZERO 對使用後果不負任何責任。<br>
+      操作：[1–4] 切換頻道 &nbsp;·&nbsp; [空白鍵] 回報異常
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ GAME ══════════════════════ -->
+<div id="wrap">
+ <div id="crt">
+  <div id="dangervin"></div>
+  <div id="staticov"></div>
+  <div id="ui">
+
+   <!-- HEADER -->
+   <div id="hdr">
+    <div id="hdr-l">
+      <div id="hdr-title">PANOPTICON</div>
+      <div id="hdr-id">OP:ZERO // NODE:884 // SECTOR:████</div>
+    </div>
+    <div id="hdr-r">
+      <div id="phase-tag">PHASE II</div>
+      <div id="clock">--:--:--</div>
+      <button class="hbtn" id="mutebtn">[MUTE]</button>
+    </div>
+   </div>
+
+   <!-- VIEWPORT -->
+   <div id="vp">
+    <canvas id="feed"></canvas>
+    <div id="camhud">
+      <div id="camlabel">INITIALIZING</div>
+      <div id="recdot"><div class="reddot"></div><span>REC</span></div>
+      <div id="ts">2031.11.09 -- 03:22:14</div>
+      <div id="camnum">CAM-01</div>
+    </div>
+    <div id="fb"></div>
+   </div>
+
+   <!-- SIDE PANEL -->
+   <div id="side">
+    <div class="sec">
+      <div class="sectitle">ALERT PROTOCOL</div>
+      <button id="rbtn"><span>! REPORT ANOMALY !</span></button>
+      <div id="sbhint">[SPACEBAR]</div>
+    </div>
+    <div class="sec">
+      <div class="sectitle">SYSTEM INTEGRITY</div>
+      <div id="intlabel"><span>INTEGRITY</span><span id="intpct">100%</span></div>
+      <div class="barbg"><div id="intfill" style="width:100%"></div></div>
+    </div>
+    <div class="sec">
+      <div class="sectitle">SESSION LOG</div>
+      <div id="scoreval">000</div>
+      <div id="scorelbl">ANOMALIES PURGED</div>
+    </div>
+    <div class="sec" style="flex:1;display:flex;flex-direction:column;">
+      <div class="sectitle">FEED MATRIX</div>
+      <div style="display:flex;flex-direction:column;gap:5px;flex:1;">
+        <button class="cbtn active" data-cam="0">[1] ENTRY&nbsp;&nbsp;門廊</button>
+        <button class="cbtn" data-cam="1">[2] LIVING 客廳</button>
+        <button class="cbtn" data-cam="2">[3] STREET 街道</button>
+        <button class="cbtn dead" data-cam="3">[4] ░░░░░ 遺失</button>
+      </div>
+    </div>
+   </div>
+
+   <!-- CONSOLE -->
+   <div id="con">
+    <div id="conhdr">
+      <span>ZERO_TERMINAL // SECURE_CHANNEL</span>
+      <span id="fps">FPS:--</span>
+    </div>
+    <div id="conbody"></div>
+   </div>
+
+  </div><!-- /ui -->
+
+  <!-- END SCREEN -->
+  <div id="end">
+    <div id="endtitle">CONNECTION TERMINATED</div>
+    <div id="endsub"></div>
+    <div id="endmsg"></div>
+    <div id="endbtns">
+      <button class="endbtn" id="replaybtn">[ RECONNECT ]</button>
+      <button class="endbtn alt" id="quitbtn">[ DISCONNECT ]</button>
+    </div>
+  </div>
+
+ </div><!-- /crt -->
+</div><!-- /wrap -->
+
+<script>
+'use strict';
+/* ╔══════════════════════════════════════════════════╗
+   ║  PANOPTICON // ZERO  —  ENGINE v4.0              ║
+   ║  All QA issues addressed. Full narrative system. ║
+   ╚══════════════════════════════════════════════════╝ */
+
+// ═══════════════════════════════════════════════════
+//  BOOT SEQUENCE
+// ═══════════════════════════════════════════════════
+(function boot() {
+  const term  = document.getElementById('boot-terminal');
+  const fill  = document.getElementById('boot-bar-fill');
+  const pctEl = document.getElementById('boot-pct');
+  const stage = document.getElementById('boot-stage');
+  const acts  = document.getElementById('boot-actions');
+
+  const lines = [
+    [0,    '',    '> ZERO_OS v7.3.2 // 自製核心，非商業版本'],
+    [220,  '',    '> 加密本地流量 .......................... OK'],
+    [480,  '',    '> 偽裝 MAC 位址 ......................... OK'],
+    [700,  '',    '> 連線 TOR 中繼節點 ..................... OK'],
+    [980,  '',    '> 目標：PANOPTICON 監視網路 // NODE-884'],
+    [1280, 'warn','> ⚠ 此域名無任何公開紀錄'],
+    [1550, 'warn','> ⚠ 域名建立時間：1987年 // 公開網路尚未存在'],
+    [1850, 'warn','> ⚠ 伺服器物理位置：無法追蹤'],
+    [2150, '',    '> 爆破驗證碼 ........ ████████████ 100%'],
+    [2550, 'err', '> !! 系統已記錄未授權存取'],
+    [2850, 'zero','> [ZERO] 沒關係，我只是看看。進去了。'],
+    [3150, '',    '> 載入攝影機子系統 ...................... OK'],
+    [3380, '',    '> 啟動異常偵測引擎 ...................... OK'],
+    [3600, 'warn','> ⚠ 前任操作員 [已刪除] 於 03:12 停止回應'],
+    [3900, 'zero','> [ZERO] 他們叫我"操作員"。有意思。'],
+  ];
+
+  const stages = [[0,'LOADING'],[18,'MOUNTING FILESYSTEM'],[45,'INIT CAMERAS'],[75,'BYPASSING AUTH'],[95,'ESTABLISHING LINK'],[100,'CONNECTED']];
+
+  let pct = 0;
+  const iv = setInterval(() => {
+    pct = Math.min(100, pct + (Math.random() * 2.5 + 0.8));
+    fill.style.width = pct + '%';
+    pctEl.textContent = Math.floor(pct) + '%';
+    for (const [t, lbl] of stages) if (pct >= t) stage.textContent = lbl;
+    if (pct >= 100) clearInterval(iv);
+  }, 35);
+
+  lines.forEach(([delay, cls, text]) => {
+    setTimeout(() => {
+      const d = document.createElement('div');
+      d.className = 'line' + (cls ? ' t-'+cls : '');
+      d.textContent = text;
+      d.style.cssText = 'opacity:0;animation:bline 0.08s forwards;';
+      if (cls === 'warn') d.style.color = '#6a4500';
+      else if (cls === 'err') d.style.color = '#7a1010';
+      else if (cls === 'zero') d.style.color = '#186644';
+      else d.style.color = '#0f4820';
+      d.style.fontFamily = "'Share Tech Mono',monospace";
+      d.style.fontSize = 'clamp(0.58rem,1.05vw,0.73rem)';
+      d.style.lineHeight = '1.4';
+      term.appendChild(d);
+      term.scrollTop = term.scrollHeight;
+    }, delay);
+  });
+
+  setTimeout(() => acts.classList.add('show'), 4100);
+})();
+
+// ═══════════════════════════════════════════════════
+//  AUDIO SYSTEM  (BUG-COMPAT-02 addressed)
+// ═══════════════════════════════════════════════════
+class AudioSys {
+  constructor() {
+    this.actx = null; this.master = null;
+    this.muted = false; this.staticGain = null;
+    this._nbuf = null;
+  }
+  init() {
+    if (this.actx) { if (this.actx.state === 'suspended') this.actx.resume(); return; }
+    this.actx   = new (window.AudioContext || window.webkitAudioContext)();
+    this.master = this.actx.createGain();
+    this.master.gain.value = 0.16;
+    this.master.connect(this.actx.destination);
+    this._ambient();
+  }
+  _nbuffer() {
+    if (!this._nbuf) {
+      const b = this.actx.createBuffer(1, this.actx.sampleRate * 3, this.actx.sampleRate);
+      const d = b.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      this._nbuf = b;
+    }
+    return this._nbuf;
+  }
+  _ambient() {
+    // Low static hiss
+    const ns = this.actx.createBufferSource();
+    ns.buffer = this._nbuffer(); ns.loop = true;
+    const lp = this.actx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 280;
+    const sg = this.actx.createGain(); sg.gain.value = 0.038;
+    ns.connect(lp).connect(sg).connect(this.master); ns.start();
+    this.staticGain = sg;
+    // Sub-bass hum (power line)
+    const osc = this.actx.createOscillator();
+    osc.type = 'sine'; osc.frequency.value = 60;
+    const hg = this.actx.createGain(); hg.gain.value = 0.01;
+    osc.connect(hg).connect(this.master); osc.start();
+  }
+  toggleMute() {
+    this.muted = !this.muted;
+    if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : 0.16, this.actx.currentTime, 0.1);
+    return this.muted;
+  }
+  sfx(type) {
+    if (!this.actx || this.muted) return;
+    const now = this.actx.currentTime;
+    const osc = this.actx.createOscillator();
+    const g   = this.actx.createGain();
+    g.connect(this.master);
+    if (type === 'switch') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(28, now + 0.12);
+      g.gain.setValueAtTime(0.1, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.connect(g); osc.start(); osc.stop(now + 0.12);
+      if (this.staticGain) {
+        this.staticGain.gain.setValueAtTime(0.2, now);
+        this.staticGain.gain.linearRampToValueAtTime(0.038, now + 0.28);
+      }
+    } else if (type === 'error') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(110, now);
+      osc.frequency.linearRampToValueAtTime(35, now + 0.38);
+      g.gain.setValueAtTime(0.22, now); g.gain.linearRampToValueAtTime(0, now + 0.38);
+      osc.connect(g); osc.start(); osc.stop(now + 0.38);
+    } else if (type === 'success') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(820, now);
+      osc.frequency.exponentialRampToValueAtTime(1280, now + 0.14);
+      g.gain.setValueAtTime(0.09, now); g.gain.linearRampToValueAtTime(0, now + 0.2);
+      osc.connect(g); osc.start(); osc.stop(now + 0.2);
+    } else if (type === 'thump') {
+      // Distant impact — anomaly spawn hint (very subtle)
+      const b = this.actx.createBufferSource();
+      b.buffer = this._nbuffer();
+      const bp = this.actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 70; bp.Q.value = 0.8;
+      const ag = this.actx.createGain();
+      ag.gain.setValueAtTime(0.18, now); ag.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      b.connect(bp).connect(ag).connect(this.master); b.start(); b.stop(now + 0.55);
+    } else if (type === 'gameover') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(55, now); osc.frequency.linearRampToValueAtTime(18, now + 2.5);
+      g.gain.setValueAtTime(0.28, now); g.gain.linearRampToValueAtTime(0, now + 2.5);
+      osc.connect(g); osc.start(); osc.stop(now + 2.5);
+      if (this.staticGain) {
+        this.staticGain.gain.setValueAtTime(0.55, now);
+        this.staticGain.gain.linearRampToValueAtTime(0.25, now + 2.5);
+      }
+    } else if (type === 'unk') {
+      // Eerie tone for UNKNOWN messages
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now); osc.frequency.linearRampToValueAtTime(392, now + 0.5);
+      g.gain.setValueAtTime(0.04, now); g.gain.linearRampToValueAtTime(0, now + 0.5);
+      osc.connect(g); osc.start(); osc.stop(now + 0.5);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  VFX — Pre-rendered noise (PERF-01, BUG-02 fixed)
+// ═══════════════════════════════════════════════════
+class VFX {
+  constructor(w, h) {
+    this.w = w; this.h = h;
+    this.lightFrames  = []; // subtle overlay for live cams
+    this.heavyFrames  = []; // heavy static for dead channel
+    this._build(this.lightFrames, 6, 0.07, 0.10, 25);
+    this._build(this.heavyFrames, 8, 0.38, 0.55, 28);
+  }
+  _build(pool, count, lo, hi, maxV) {
+    pool.length = 0;
+    const fw = Math.ceil(this.w / 2), fh = Math.ceil(this.h / 2);
+    for (let i = 0; i < count; i++) {
+      const c = document.createElement('canvas');
+      c.width = fw; c.height = fh;
+      const cx = c.getContext('2d');
+      const id = cx.createImageData(fw, fh);
+      const buf = new Uint32Array(id.data.buffer);
+      for (let j = 0; j < buf.length; j++) {
+        const r = Math.random();
+        if (r < lo) {
+          const v = Math.floor(Math.random() * maxV);
+          buf[j] = (255 << 24) | (v << 16) | (v << 8) | v;
+        } else if (r < hi) {
+          const v = Math.floor(Math.random() * maxV * 1.6);
+          buf[j] = (255 << 24) | (v << 16) | (v << 8) | v;
+        }
+      }
+      cx.putImageData(id, 0, 0);
+      pool.push(c);
+    }
+  }
+  drawOverlay(ctx, tick) {
+    const f = this.lightFrames[tick % this.lightFrames.length];
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.22;
+    ctx.drawImage(f, 0, 0, this.w, this.h);
+    ctx.restore();
+  }
+  drawStatic(ctx, tick) {
+    // BUG-02 FIX: Use pre-rendered frames instead of per-frame putImageData
+    const f = this.heavyFrames[tick % this.heavyFrames.length];
+    ctx.drawImage(f, 0, 0, this.w, this.h);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  SCENE STATE — Tracks narrative-driven scene changes
+// ═══════════════════════════════════════════════════
+const SceneState = {
+  entry:  { lightOn:true, doorAjar:false, figureAtDoor:false },
+  living: { lightOn:true, tvStatic:false, blindOpen:false, chairMoved:false },
+  street: { lamp1On:true, lamp2On:true, fogLevel:0, carGone:false },
+};
+
+// ═══════════════════════════════════════════════════
+//  SCENE RENDERER  (all rendering bugs fixed)
+// ═══════════════════════════════════════════════════
+class Renderer {
+  constructor(canvas, vfx) {
+    this.cvs = canvas;
+    this.ctx = canvas.getContext('2d', { alpha: false });
+    this.vfx = vfx;
+  }
+
+  // PERF-03 fix: call from game after resize
+  reinitVFX(vfx) { this.vfx = vfx; }
+
+  render(camId, anomaly, tick, integrity) {
+    const ctx = this.ctx;
+    const W = this.cvs.width, H = this.cvs.height;
+
+    ctx.fillStyle = '#020402';
+    ctx.fillRect(0, 0, W, H);
+
+    if (camId === 3) {
+      this._deadChan(ctx, W, H, tick);
+      // BUG-01 FIX: Anomaly check BEFORE early return
+      if (anomaly && anomaly.camId === 3) this._staticFace(ctx, W, H, tick);
+      this.vfx.drawOverlay(ctx, tick);
+      return;
+    }
+
+    const draws = [
+      () => this._entry(ctx, W, H, tick),
+      () => this._living(ctx, W, H, tick),
+      () => this._street(ctx, W, H, tick),
+    ];
+    if (draws[camId]) draws[camId]();
+
+    if (anomaly && anomaly.camId === camId) {
+      this._anomaly(ctx, W, H, anomaly, tick);
+    }
+
+    // Integrity degradation visual
+    if (integrity < 40) {
+      const a = ((40 - integrity) / 40) * 0.18;
+      ctx.fillStyle = `rgba(255,0,0,${a})`;
+      ctx.fillRect(0, 0, W, H);
+      if (tick % 7 < 2) {
+        const y = Math.random() * H;
+        ctx.save();
+        ctx.drawImage(this.cvs, 0, y, W, 3, (Math.random()-0.5)*14, y, W, 3);
+        ctx.restore();
+      }
+    }
+
+    this.vfx.drawOverlay(ctx, tick);
+  }
+
+  // ── CAM 1: ENTRY HALL ─────────────────────────────
+  _entry(ctx, W, H, tick) {
+    const st = SceneState.entry;
+    // Floor gradient
+    const fl = ctx.createLinearGradient(0, H*0.58, 0, H);
+    fl.addColorStop(0, '#050d05'); fl.addColorStop(1, '#020502');
+    ctx.fillStyle = fl; ctx.fillRect(0, H*0.58, W, H*0.42);
+    // Ceiling
+    ctx.fillStyle = '#020402'; ctx.fillRect(0, 0, W, H*0.14);
+
+    // Left wall trapezoid
+    ctx.beginPath();
+    ctx.moveTo(0,0); ctx.lineTo(W*0.27,H*0.14);
+    ctx.lineTo(W*0.27,H*0.58); ctx.lineTo(0,H);
+    ctx.closePath();
+    ctx.fillStyle = '#040804'; ctx.fill();
+    ctx.strokeStyle = '#0b300b'; ctx.lineWidth = 1; ctx.stroke();
+
+    // Right wall trapezoid
+    ctx.beginPath();
+    ctx.moveTo(W,0); ctx.lineTo(W*0.73,H*0.14);
+    ctx.lineTo(W*0.73,H*0.58); ctx.lineTo(W,H);
+    ctx.closePath();
+    ctx.fillStyle = '#030703'; ctx.fill();
+    ctx.strokeStyle = '#0b300b'; ctx.lineWidth = 1; ctx.stroke();
+
+    // Back wall
+    ctx.beginPath();
+    ctx.moveTo(W*0.27,H*0.14); ctx.lineTo(W*0.73,H*0.14);
+    ctx.lineTo(W*0.73,H*0.58); ctx.lineTo(W*0.27,H*0.58);
+    ctx.closePath();
+    ctx.fillStyle = '#050c05'; ctx.fill();
+    ctx.strokeStyle = '#0b300b'; ctx.lineWidth = 1; ctx.stroke();
+
+    // Door frame
+    const doorX = W*0.42, doorW = W*0.16, doorH = H*0.44, doorY = H*0.14;
+    ctx.strokeStyle = '#1a4a1a'; ctx.lineWidth = 2;
+    ctx.strokeRect(doorX, doorY, doorW, doorH);
+    if (st.doorAjar) {
+      // Door slightly open — darkness within
+      ctx.fillStyle = '#010101'; ctx.fillRect(doorX, doorY, doorW*0.15, doorH);
+      ctx.fillStyle = '#060c06'; ctx.fillRect(doorX+doorW*0.15, doorY, doorW*0.85, doorH);
+      // Light spill from gap
+      const gs = ctx.createLinearGradient(doorX, 0, doorX+doorW*0.2, 0);
+      gs.addColorStop(0,'rgba(26,255,110,0.06)'); gs.addColorStop(1,'transparent');
+      ctx.fillStyle = gs; ctx.fillRect(doorX, doorY, doorW*0.2, doorH);
+    } else {
+      ctx.fillStyle = '#010201'; ctx.fillRect(doorX, doorY, doorW, doorH);
+      // Door panels
+      ctx.strokeStyle = '#0b2a0b'; ctx.lineWidth = 1;
+      ctx.strokeRect(doorX+W*0.02, doorY+H*0.03, W*0.05, H*0.14);
+      ctx.strokeRect(doorX+W*0.09, doorY+H*0.03, W*0.05, H*0.14);
+      ctx.strokeRect(doorX+W*0.02, doorY+H*0.22, W*0.12, H*0.12);
+      // Door handle
+      ctx.fillStyle = '#0e400e';
+      ctx.fillRect(doorX+doorW*0.82, doorY+doorH*0.45, W*0.012, H*0.04);
+    }
+
+    // Ceiling light — flickers based on state
+    const lf = st.lightOn ? (Math.sin(tick*0.12)>0.96 ? 0.25 : 1) : (Math.sin(tick*0.3)>0.7 ? 0.05 : 0);
+    ctx.fillStyle = `rgba(26,255,110,${0.07*lf})`;
+    ctx.fillRect(W*0.36, H*0.12, W*0.28, H*0.04);
+    // Light pool on floor
+    const lp = ctx.createRadialGradient(W*0.5, H*0.58, 0, W*0.5, H*0.58, W*0.28);
+    lp.addColorStop(0, `rgba(26,255,110,${0.04*lf})`); lp.addColorStop(1,'transparent');
+    ctx.fillStyle = lp; ctx.fillRect(0, 0, W, H);
+
+    // Left wall sconce (warmer, amber tint — NARR-03 fix)
+    ctx.fillStyle = '#1a1a0a';
+    ctx.fillRect(W*0.06, H*0.28, W*0.05, H*0.09);
+    ctx.fillStyle = `rgba(200,180,60,${0.08*lf})`;
+    ctx.fillRect(W*0.065, H*0.27, W*0.04, H*0.025);
+
+    // Baseboard
+    ctx.strokeStyle = '#0a1e0a'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, H*0.97); ctx.lineTo(W, H*0.97); ctx.stroke();
+
+    // Narrative: figure standing at door threshold (score-triggered)
+    if (st.figureAtDoor) {
+      const alpha = 0.3 + Math.sin(tick*0.04)*0.08;
+      ctx.save(); ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#000';
+      // Body
+      ctx.beginPath(); ctx.ellipse(doorX+doorW*0.5, doorY+doorH*0.6, 9, 32, 0, 0, Math.PI*2); ctx.fill();
+      // Head
+      ctx.beginPath(); ctx.arc(doorX+doorW*0.5, doorY+doorH*0.25, 13, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // ── CAM 2: LIVING ROOM ────────────────────────────
+  _living(ctx, W, H, tick) {
+    const st = SceneState.living;
+    // Floor
+    const fl = ctx.createLinearGradient(0, H*0.63, 0, H);
+    fl.addColorStop(0, '#050a05'); fl.addColorStop(1, '#020302');
+    ctx.fillStyle = fl; ctx.fillRect(0, H*0.63, W, H*0.37);
+    // Wall
+    ctx.fillStyle = '#040904'; ctx.fillRect(0, 0, W, H*0.63);
+    ctx.strokeStyle = '#0a1e0a'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0,H*0.63); ctx.lineTo(W,H*0.63); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,H*0.08); ctx.lineTo(W,H*0.08); ctx.stroke();
+
+    // Window with blinds (cool blue tint outside — NARR-03 fix)
+    const wX=W*0.12, wY=H*0.12, wW=W*0.3, wH=H*0.36;
+    ctx.fillStyle = '#010305'; ctx.fillRect(wX, wY, wW, wH);
+    ctx.strokeStyle = '#0a1e0a'; ctx.lineWidth = 1; ctx.strokeRect(wX, wY, wW, wH);
+    // Blind slats
+    for (let i=0; i<9; i++) {
+      const by = wY + (i/9)*wH;
+      if (!st.blindOpen) {
+        ctx.strokeStyle = '#0a1a10'; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(wX,by); ctx.lineTo(wX+wW,by); ctx.stroke();
+      }
+    }
+    // Cold blue light seeping in (NARR-03 different from entry's amber)
+    const wg = ctx.createLinearGradient(wX, 0, wX+wW*0.5, 0);
+    wg.addColorStop(0,'rgba(60,100,180,0.03)'); wg.addColorStop(1,'transparent');
+    ctx.fillStyle = wg; ctx.fillRect(wX, wY, wW, wH);
+
+    // Sofa
+    const sfx=W*0.04, sfy=H*0.52, sfw=W*0.56, sfh=H*0.18;
+    ctx.fillStyle = '#070f07'; ctx.fillRect(sfx, sfy, sfw, sfh);
+    ctx.strokeStyle = '#0e280e'; ctx.lineWidth = 1; ctx.strokeRect(sfx, sfy, sfw, sfh);
+    // Sofa back
+    ctx.fillStyle = '#060d06'; ctx.fillRect(sfx, sfy-H*0.1, sfw, H*0.12);
+    ctx.strokeRect(sfx, sfy-H*0.1, sfw, H*0.12);
+    // Cushions
+    ctx.strokeStyle = '#0a180a';
+    ctx.strokeRect(sfx+W*0.02, sfy+H*0.01, W*0.15, H*0.15);
+    ctx.strokeRect(sfx+W*0.22, sfy+H*0.01, W*0.15, H*0.15);
+    ctx.strokeRect(sfx+W*0.39, sfy+H*0.01, W*0.15, H*0.15);
+
+    // Chair (narrative: can be 'moved')
+    const cxOff = st.chairMoved ? W*0.02 : 0;
+    ctx.fillStyle = '#050d05';
+    ctx.fillRect(W*0.62+cxOff, H*0.52, W*0.12, H*0.14);
+    ctx.strokeStyle = '#0a1a0a'; ctx.lineWidth = 1;
+    ctx.strokeRect(W*0.62+cxOff, H*0.52, W*0.12, H*0.14);
+    // Chair back
+    ctx.fillStyle = '#040a04';
+    ctx.fillRect(W*0.62+cxOff, H*0.44, W*0.12, H*0.1);
+    ctx.strokeRect(W*0.62+cxOff, H*0.44, W*0.12, H*0.1);
+
+    // TV
+    const tvX=W*0.63, tvY=H*0.1, tvW=W*0.32, tvH=H*0.38;
+    ctx.fillStyle = '#010201'; ctx.fillRect(tvX, tvY, tvW, tvH);
+    ctx.strokeStyle = '#0a1e0a'; ctx.lineWidth = 2; ctx.strokeRect(tvX, tvY, tvW, tvH);
+    // TV stand
+    ctx.fillStyle = '#040804'; ctx.fillRect(tvX+tvW*0.35, tvY+tvH, tvW*0.3, H*0.07);
+    // TV static (narrative trigger) or normal reflection
+    if (st.tvStatic) {
+      // TV is ON with static
+      const tvf = this.vfx.heavyFrames[Math.floor(tick/2) % this.vfx.heavyFrames.length];
+      ctx.save(); ctx.globalAlpha = 0.4;
+      ctx.drawImage(tvf, tvX+2, tvY+2, tvW-4, tvH-4);
+      ctx.restore();
+      // Glow on wall
+      ctx.fillStyle = 'rgba(200,200,180,0.02)';
+      ctx.fillRect(W*0.5, H*0.1, W*0.5, H*0.5);
+    } else {
+      const ta = 0.015 + Math.sin(tick*0.04)*0.006;
+      ctx.fillStyle = `rgba(26,255,110,${ta})`; ctx.fillRect(tvX+2, tvY+2, tvW-4, tvH-4);
+    }
+
+    // Ceiling light
+    const lf = st.lightOn ? 1 : 0;
+    ctx.fillStyle = `rgba(26,255,110,${0.05*lf})`; ctx.fillRect(W*0.42, H*0.02, W*0.16, H*0.04);
+    const clg = ctx.createRadialGradient(W*0.5, H*0.08, 0, W*0.5, H*0.08, W*0.42);
+    clg.addColorStop(0,`rgba(26,255,110,${0.035*lf})`); clg.addColorStop(1,'transparent');
+    ctx.fillStyle = clg; ctx.fillRect(0, 0, W, H);
+
+    // Coffee table
+    ctx.fillStyle = '#040904'; ctx.fillRect(W*0.14, H*0.68, W*0.36, H*0.1);
+    ctx.strokeStyle = '#0a1a0a'; ctx.lineWidth = 1; ctx.strokeRect(W*0.14, H*0.68, W*0.36, H*0.1);
+  }
+
+  // ── CAM 3: STREET ─────────────────────────────────
+  _street(ctx, W, H, tick) {
+    const st = SceneState.street;
+    const fog = st.fogLevel;
+    // Sky — very dark, hint of city glow
+    const sky = ctx.createLinearGradient(0, 0, 0, H*0.52);
+    sky.addColorStop(0, '#010201'); sky.addColorStop(1, '#020502');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H*0.52);
+    // Ground
+    const gnd = ctx.createLinearGradient(0, H*0.52, 0, H);
+    gnd.addColorStop(0, '#040804'); gnd.addColorStop(1, '#020302');
+    ctx.fillStyle = gnd; ctx.fillRect(0, H*0.52, W, H*0.48);
+
+    // Road perspective
+    ctx.strokeStyle = '#0b1a0b'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(W*0.28,H); ctx.lineTo(W*0.46,H*0.52); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W*0.72,H); ctx.lineTo(W*0.54,H*0.52); ctx.stroke();
+    // Road dashes
+    ctx.strokeStyle = '#090f09'; ctx.lineWidth = 1;
+    ctx.setLineDash([3,8]);
+    ctx.beginPath(); ctx.moveTo(W*0.5,H*0.52); ctx.lineTo(W*0.5,H); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Left building
+    ctx.fillStyle = '#030603'; ctx.fillRect(0, H*0.08, W*0.26, H*0.44);
+    ctx.strokeStyle = '#0a180a'; ctx.lineWidth = 1; ctx.strokeRect(0, H*0.08, W*0.26, H*0.44);
+    // Windows (warm yellow-white tones — NARR-03 fix)
+    for (let row=0; row<5; row++) {
+      for (let col=0; col<3; col++) {
+        const wx = W*0.025 + col*W*0.075;
+        const wy = H*0.11 + row*H*0.075;
+        // Throttled tick check for perf (PERF-02 fix)
+        const seed = row*31 + col*17;
+        const lit = Math.sin(Math.floor(tick/90)*0.8 + seed) > 0.72;
+        ctx.fillStyle = lit ? 'rgba(220,200,120,0.09)' : '#010201';
+        ctx.fillRect(wx, wy, W*0.048, H*0.048);
+        ctx.strokeStyle = '#0a1a0a'; ctx.strokeRect(wx, wy, W*0.048, H*0.048);
+      }
+    }
+
+    // Right building
+    ctx.fillStyle = '#020502'; ctx.fillRect(W*0.74, H*0.04, W*0.26, H*0.48);
+    ctx.strokeStyle = '#0a180a'; ctx.lineWidth = 1; ctx.strokeRect(W*0.74, H*0.04, W*0.26, H*0.48);
+    for (let row=0; row<6; row++) {
+      for (let col=0; col<3; col++) {
+        const wx = W*0.755 + col*W*0.075;
+        const wy = H*0.07 + row*H*0.068;
+        const seed = row*43 + col*23 + 5;
+        const lit = Math.sin(Math.floor(tick/90)*0.9 + seed) > 0.75;
+        ctx.fillStyle = lit ? 'rgba(200,220,140,0.08)' : '#010201';
+        ctx.fillRect(wx, wy, W*0.045, H*0.045);
+        ctx.strokeStyle = '#0a1a0a'; ctx.strokeRect(wx, wy, W*0.045, H*0.045);
+      }
+    }
+
+    // Streetlamps — can be off (narrative trigger)
+    const lamps = [[W*0.21, H*0.34, st.lamp1On], [W*0.79, H*0.31, st.lamp2On]];
+    lamps.forEach(([lx, ly, on]) => {
+      ctx.strokeStyle = '#0c280c'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(lx, H*0.52); ctx.lineTo(lx, ly); ctx.stroke();
+      const arm = lx < W/2 ? W*0.048 : -W*0.048;
+      ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx+arm, ly); ctx.stroke();
+      const tip = lx + arm;
+      if (on) {
+        // Warm yellow-white lamp (NARR-03 fix)
+        ctx.fillStyle = 'rgba(255,240,180,0.9)';
+        ctx.beginPath(); ctx.arc(tip, ly, 2.5, 0, Math.PI*2); ctx.fill();
+        const lg = ctx.createRadialGradient(tip, ly, 0, tip, ly, W*0.14);
+        lg.addColorStop(0,'rgba(255,240,140,0.07)'); lg.addColorStop(1,'transparent');
+        ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(tip, ly, W*0.14, 0, Math.PI*2); ctx.fill();
+      } else {
+        ctx.fillStyle = '#1a1a1a';
+        ctx.beginPath(); ctx.arc(tip, ly, 2.5, 0, Math.PI*2); ctx.fill();
+      }
+    });
+
+    // Parked car (can disappear)
+    if (!st.carGone) {
+      ctx.fillStyle = '#050a05'; ctx.fillRect(W*0.02, H*0.50, W*0.2, H*0.09);
+      ctx.strokeStyle = '#0a180a'; ctx.lineWidth = 1;
+      ctx.strokeRect(W*0.02, H*0.50, W*0.2, H*0.09);
+      ctx.fillStyle = '#040804'; ctx.fillRect(W*0.05, H*0.44, W*0.12, H*0.07);
+      ctx.strokeRect(W*0.05, H*0.44, W*0.12, H*0.07);
+      ctx.fillStyle = '#030703';
+      ctx.beginPath(); ctx.arc(W*0.065, H*0.59, W*0.022, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(W*0.185, H*0.59, W*0.022, 0, Math.PI*2); ctx.fill();
+    }
+
+    // Fog overlay (narrative: increases over time)
+    if (fog > 0) {
+      ctx.fillStyle = `rgba(10,20,10,${fog * 0.35})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  // ── CAM 4: DEAD CHANNEL ───────────────────────────
+  _deadChan(ctx, W, H, tick) {
+    // BUG-02 FIX: pre-rendered static frames
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+    this.vfx.drawStatic(ctx, tick);
+
+    // Occasional horizontal scan artifacts (cheap)
+    if (tick % 50 < 4) {
+      const sy = Math.random() * H;
+      ctx.fillStyle = 'rgba(26,255,110,0.03)';
+      ctx.fillRect(0, sy, W, 1.5);
+    }
+    if (tick % 110 < 5) {
+      for (let i=0; i<3; i++) {
+        const ly = Math.random() * H;
+        const off = (Math.random()-0.5) * 35;
+        ctx.save();
+        ctx.drawImage(this.cvs, 0, ly, W*0.5, 2.5, off, ly, W*0.5, 2.5);
+        ctx.restore();
+      }
+    }
+  }
+
+  // ── ANOMALY DISPATCH ──────────────────────────────
+  _anomaly(ctx, W, H, anomaly, tick) {
+    const { type, x, y, seed } = anomaly;
+    const ax = x * W*0.52 + W*0.20;
+    const ay = y * H*0.42 + H*0.17;
+    switch (type) {
+      case 'shadow':      this._aShadow(ctx, W, H, ax, ay, tick, seed); break;
+      case 'figure':      this._aFigure(ctx, W, H, ax, ay, tick, seed); break;
+      case 'displacement':this._aDisplace(ctx, W, H, ax, ay, tick); break;
+      case 'text':        this._aText(ctx, W, H, ax, ay, tick, seed); break;
+      case 'moved':       this._aMoved(ctx, W, H, ax, ay, tick, seed); break;
+    }
+  }
+
+  _aShadow(ctx, W, H, ax, ay, tick, seed) {
+    // Subtle — barely-there dark presence, breathes
+    const breathe = 0.88 + Math.sin(tick*0.038)*0.1;
+    ctx.save();
+    ctx.globalAlpha = 0.5 + Math.sin(tick*0.03+seed)*0.1;
+    const g = ctx.createRadialGradient(ax, ay, 0, ax, ay+18, 52*breathe);
+    g.addColorStop(0,'rgba(0,0,0,0.92)');
+    g.addColorStop(0.45,'rgba(0,0,0,0.5)');
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle = g;
+    ctx.save(); ctx.scale(1, 1.9);
+    ctx.beginPath(); ctx.arc(ax, ay/1.9, 30*breathe, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+    // Eyes: only flicker on occasionally
+    if (Math.sin(tick*0.025+seed*2.8) > 0.45) {
+      ctx.globalAlpha = 0.28;
+      ctx.fillStyle = '#e8e8e8';
+      ctx.fillRect(ax-5, ay-18, 1.5, 1.5);
+      ctx.fillRect(ax+4, ay-18, 1.5, 1.5);
+    }
+    ctx.restore();
+  }
+
+  _aFigure(ctx, W, H, ax, ay, tick, seed) {
+    // Thin, standing — placement near scene edges for believability
+    const fx = ax * 0.4 + W*0.04; // bias toward edges
+    const sway = Math.sin(tick*0.018+seed)*2.5;
+    ctx.save();
+    ctx.globalAlpha = 0.38 + Math.sin(tick*0.04+seed)*0.12;
+    ctx.fillStyle = 'rgba(0,0,0,0.88)';
+    // Torso
+    ctx.beginPath(); ctx.ellipse(fx+sway, ay+10, 7, 36, 0, 0, Math.PI*2); ctx.fill();
+    // Head
+    ctx.beginPath(); ctx.arc(fx+sway, ay-32, 10, 0, Math.PI*2); ctx.fill();
+    // Arms (barely visible)
+    ctx.globalAlpha *= 0.45;
+    ctx.fillRect(fx+sway-18, ay, 10, 2.5);
+    ctx.fillRect(fx+sway+8, ay, 10, 2.5);
+    ctx.restore();
+  }
+
+  _aDisplace(ctx, W, H, ax, ay, tick) {
+    // Horizontal pixel shifts — looks like a signal artifact
+    const strips = 2 + Math.floor(Math.random()*3);
+    for (let i=0; i<strips; i++) {
+      const sy = ay + i*7 - 8;
+      const offset = (Math.random()>0.5?1:-1) * (Math.random()*14+4);
+      ctx.save();
+      ctx.drawImage(this.cvs, 0, sy, W, 5.5, offset, sy, W, 5.5);
+      ctx.restore();
+    }
+    // Very faint red cast
+    ctx.save(); ctx.globalAlpha = 0.06;
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(ax-28, ay-18, 56, 38);
+    ctx.restore();
+  }
+
+  _aText(ctx, W, H, ax, ay, tick, seed) {
+    // Flickering message — hard to read
+    const msgs = ['I SEE YOU','DO NOT LOOK','01000100','THEY KNOW','BEHIND YOU','ZERO','???????','WHO ARE YOU'];
+    const msg = msgs[Math.floor(seed * msgs.length)];
+    const alpha = (Math.sin(tick*0.18+seed*8)+1)/2 * 0.55 + 0.12;
+    const glitched = Math.sin(tick*0.32) > 0.68;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = '20px VT323'; // CODE-01 FIX: single font assignment
+    ctx.fillStyle = glitched ? '#ff2020' : '#1aff6e';
+    const jx = glitched ? (Math.random()-0.5)*5 : 0;
+    const jy = glitched ? (Math.random()-0.5)*3 : 0;
+    ctx.fillText(msg, ax+jx, ay+jy);
+    ctx.restore();
+  }
+
+  _aMoved(ctx, W, H, ax, ay, tick, seed) {
+    // BUG-07 FIX: proportional sizes; also scene-appropriate
+    const bW = W*0.045, bH = H*0.04;
+    // Subtle shadow beneath — makes it look physically present
+    const sg = ctx.createLinearGradient(ax, ay+bH, ax, ay+bH+H*0.025);
+    sg.addColorStop(0,'rgba(0,0,0,0.35)'); sg.addColorStop(1,'transparent');
+    ctx.save(); ctx.globalAlpha = 0.75;
+    ctx.fillStyle = '#040a04';
+    ctx.fillRect(ax, ay, bW, bH);
+    ctx.strokeStyle = '#0a180a'; ctx.lineWidth = 0.8;
+    ctx.strokeRect(ax, ay, bW, bH);
+    ctx.fillStyle = sg; ctx.fillRect(ax, ay+bH, bW, H*0.025);
+    ctx.restore();
+  }
+
+  _staticFace(ctx, W, H, tick) {
+    // BUG-01 FIX: this is called directly from render() for cam 3
+    // NARR-02 FIX: unsettling open mouth, not a smile
+    const fx = W*0.44 + Math.sin(tick*0.28)*W*0.04;
+    const fy = H*0.38;
+    const alpha = 0.05 + Math.sin(tick*0.14)*0.025;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = '#ccc'; ctx.lineWidth = 0.8;
+    // Head
+    ctx.beginPath(); ctx.arc(fx, fy, W*0.068, 0, Math.PI*2); ctx.stroke();
+    // Eyes (slightly brighter)
+    ctx.globalAlpha = alpha * 2.2;
+    ctx.fillStyle = '#bbb';
+    ctx.fillRect(fx - W*0.022, fy - H*0.04, W*0.013, H*0.014);
+    ctx.fillRect(fx + W*0.009, fy - H*0.04, W*0.013, H*0.014);
+    // Mouth — NARR-02 FIX: open/hollow, not a smile
+    ctx.globalAlpha = alpha * 1.5;
+    ctx.beginPath();
+    ctx.arc(fx, fy + H*0.025, W*0.018, Math.PI*0.15, Math.PI*0.85);
+    ctx.stroke();
+    // Jaw bottom
+    ctx.beginPath();
+    ctx.arc(fx, fy + H*0.025, W*0.018, Math.PI*0.85, Math.PI*0.15);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  NARRATIVE ENGINE — Full Zero story arc
+// ═══════════════════════════════════════════════════
+class Narrative {
+  constructor() {
+    this.phase = 0;
+    this.done = new Set();
+    this.logFn = null; // assigned by Game
+    this.audioFn = null;
+    this.phaseTagEl = document.getElementById('phase-tag');
+
+    // Scripted events: trigger types: score, falseAlarm, time
+    // Each event fires exactly once
+    this.events = [
+      // ── PHASE 0: Zero establishes connection ────────
+      { id:'p0_connect', trigger:{type:'score',v:0}, delay:800, msgs:[
+        { text:'[ZERO] 連上了。比預期容易。這是個什麼系統？', type:'zero' },
+      ]},
+      { id:'p0_note', trigger:{type:'score',v:0}, delay:3500, msgs:[
+        { text:'> PANOPTICON NODE-884 // 操作員已就位', type:'sys' },
+        { text:'> 指令：識別並回報攝影機畫面中的異常。', type:'sys' },
+      ]},
+      { id:'p0_zero2', trigger:{type:'score',v:0}, delay:7000, msgs:[
+        { text:'[ZERO] 域名1987年建立。那時候公開網路根本不存在。這是誰的系統？', type:'zero' },
+      ]},
+      // ── First anomaly ───────────────────────────────
+      { id:'p0_first', trigger:{type:'score',v:1}, delay:400, msgs:[
+        { text:'> 異常清除確認。系統完整性已恢復。感謝您的服務，操作員。', type:'sys' },
+        { text:'[ZERO] 那是什麼？一個人影？還是只是干擾？', type:'zero' },
+      ]},
+      // ── Score 2: System starts to respond oddly ─────
+      { id:'p1_odd', trigger:{type:'score',v:2}, delay:600, msgs:[
+        { text:'> 記錄：操作員ZERO // 效率：正常 // 狀態：受監視', type:'sys' },
+        { text:'[ZERO] 等等——"受監視"？我是在監視別人，不是……', type:'zero' },
+      ]},
+      // ── Score 3: Phase I begins, first contact ──────
+      { id:'p1_begin', trigger:{type:'score',v:3}, delay:200, msgs:[
+        { text:'> ⚠ 偵測到非授權熱源信號 // 位置：CAM-01附近', type:'warn' },
+        { text:'> ⚠ 生命徵象感應器讀取到額外生物特徵', type:'warn' },
+        { text:'[ZERO] 生命徵象？這不是一般的監視系統……', type:'zero' },
+      ], phase:1, phaseTag:'PHASE I — 滲透'},
+      // ── Score 4: The system speaks ──────────────────
+      { id:'p1_speak', trigger:{type:'score',v:4}, delay:1200, msgs:[
+        { text:'ZERO。', type:'unk' },
+      ], sfx:'unk'},
+      { id:'p1_speak2', trigger:{type:'score',v:4}, delay:3000, msgs:[
+        { text:'[ZERO] 什——誰在說話？這不是系統訊息。', type:'zero' },
+        { text:'我們一直在等你。', type:'unk' },
+      ], sfx:'unk'},
+      // ── Score 5: Zero investigates ──────────────────
+      { id:'p1_investigate', trigger:{type:'score',v:5}, delay:500, msgs:[
+        { text:'[ZERO] 訊號來源追蹤中……追不到。不在任何已知節點上。', type:'zero' },
+        { text:'> ERR: CAM-04 最後記錄的畫面已被系統刪除', type:'alert' },
+        { text:'> ERR: 前任操作員 [█████] 的資料夾不存在', type:'alert' },
+      ]},
+      // ── Score 6: Revelation begins ──────────────────
+      { id:'p1_reveal1', trigger:{type:'score',v:6}, delay:800, msgs:[
+        { text:'你認為你在監視異常。', type:'unk' },
+        { text:'[ZERO] 我是啊……我在回報那些……那些……', type:'zero' },
+        { text:'你在幫我們確認目標的位置。', type:'unk' },
+      ], sfx:'unk'},
+      // ── Score 7: Phase II — Truth ────────────────────
+      { id:'p2_begin', trigger:{type:'score',v:7}, delay:300, msgs:[
+        { text:'> PANOPTICON 協議 II 已啟動', type:'glitch' },
+        { text:'> 操作員ZERO升級為：永久席位', type:'glitch' },
+        { text:'[ZERO] 永久——什麼意思"永久"？', type:'zero' },
+      ], phase:2, phaseTag:'PHASE II — 真相'},
+      { id:'p2_truth', trigger:{type:'score',v:7}, delay:3500, msgs:[
+        { text:'那些"異常"不是威脅。', type:'unk' },
+        { text:'那些是試圖離開的人。', type:'unk' },
+        { text:'[ZERO] ……你是說……我一直在幫你找人。', type:'zero' },
+      ], sfx:'unk'},
+      // ── Score 8: Scene changes begin (handled by game) ─
+      { id:'p2_scenes', trigger:{type:'score',v:8}, delay:200, msgs:[
+        { text:'> 系統記錄：本節點已追蹤 884-B 扇區 7年', type:'warn' },
+        { text:'> 系統記錄：操作員輪換週期：直到精神衰竭', type:'warn' },
+        { text:'[ZERO] 七年？那些前任操作員……', type:'zero' },
+      ]},
+      // ── Score 10: Personal revelation ───────────────
+      { id:'p2_personal', trigger:{type:'score',v:10}, delay:600, msgs:[
+        { text:'ZERO，我們認識你很久了。', type:'unk' },
+        { text:'比你認識我們更久。', type:'unk' },
+        { text:'[ZERO] 什麼——你在說什麼？', type:'zero' },
+        { text:'2019年。你的第一次入侵。我們在看。', type:'unk' },
+        { text:'2021年。BLACKSITE事件。我們在看。', type:'unk' },
+        { text:'2023年。你開始尋找PANOPTICON。我們放你找到的。', type:'unk' },
+      ], sfx:'unk'},
+      // ── Score 12: Phase III ──────────────────────────
+      { id:'p3_begin', trigger:{type:'score',v:12}, delay:200, msgs:[
+        { text:'> !!! PANOPTICON 核心層協議啟動 !!!', type:'panic' },
+        { text:'> !!! 退出功能已停用 !!!', type:'panic' },
+        { text:'[ZERO] 停用？不——我——', type:'zero' },
+        { text:'[ZERO] Ctrl+C——沒有反應。關機——沒有反應。', type:'zero' },
+      ], phase:3, phaseTag:'PHASE III — 陷阱'},
+      { id:'p3_truth2', trigger:{type:'score',v:12}, delay:4000, msgs:[
+        { text:'PANOPTICON不是監視系統。', type:'unk' },
+        { text:'PANOPTICON是一個答案。', type:'unk' },
+        { text:'[ZERO] 什麼問題的答案？', type:'zero' },
+        { text:'當人類文明滅亡時，誰來記錄最後的樣子。', type:'unk' },
+        { text:'現在是你。', type:'unk' },
+      ], sfx:'unk'},
+      // ── Score 15 ─────────────────────────────────────
+      { id:'p3_final', trigger:{type:'score',v:15}, delay:500, msgs:[
+        { text:'[ZERO] 那些攝影機裡的人……他們都是真實的？', type:'zero' },
+        { text:'都是。', type:'unk' },
+        { text:'你回報過多少異常了？', type:'unk' },
+        { text:'[ZERO] ……', type:'zero' },
+        { text:'每一次回報，我們就知道他們的位置。', type:'unk' },
+        { text:'謝謝你，ZERO。', type:'unk' },
+      ], sfx:'unk'},
+      // ── False alarm responses ─────────────────────────
+      { id:'fa_1', trigger:{type:'falseAlarm',v:1}, delay:300, msgs:[
+        { text:'> 誤報已記錄。完整性扣除。', type:'sys' },
+      ]},
+      { id:'fa_3', trigger:{type:'falseAlarm',v:3}, delay:300, msgs:[
+        { text:'> 注意：頻繁誤報將導致操作員評級下降', type:'warn' },
+        { text:'[ZERO] 不是誤報。我看到什麼了。', type:'zero' },
+      ]},
+    ];
+    this.falseAlarms = 0;
+    this.falseAlarmEventsFired = new Set();
+  }
+
+  check(type, value, extraData) {
+    if (!this.logFn) return;
+    for (const ev of this.events) {
+      if (this.done.has(ev.id)) continue;
+      const t = ev.trigger;
+      if (t.type === 'score' && type === 'score' && value >= t.v) {
+        this.done.add(ev.id);
+        this._fire(ev);
+      }
+      if (t.type === 'falseAlarm' && type === 'falseAlarm' && value >= t.v && !this.falseAlarmEventsFired.has(ev.id)) {
+        this.falseAlarmEventsFired.add(ev.id);
+        this.done.add(ev.id);
+        this._fire(ev);
+      }
+    }
+  }
+
+  _fire(ev) {
+    if (ev.phase !== undefined && ev.phase > this.phase) {
+      this.phase = ev.phase;
+      if (ev.phaseTag) {
+        this.phaseTagEl.textContent = ev.phaseTag;
+        this.phaseTagEl.style.display = 'block';
+      }
+    }
+    let cumDelay = ev.delay || 0;
+    for (const msg of ev.msgs) {
+      const d = cumDelay;
+      setTimeout(() => {
+        this.logFn(msg.text, msg.type);
+        if (ev.sfx && this.audioFn) this.audioFn(ev.sfx);
+      }, d);
+      cumDelay += 700 + msg.text.length * 25;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  GAME
+// ═══════════════════════════════════════════════════
+class Game {
+  constructor() {
+    this.cvs  = document.getElementById('feed');
+    this.vfx  = null;
+    this.rend = null;
+    this.audio = new AudioSys();
+    this.narr  = new Narrative();
+    this.running = false;
+
+    // State
+    this.activeCam  = 0;
+    this.integrity  = 100;
+    this.score      = 0;
+    this.falseAlarms= 0;
+    this.difficulty = 1;
+    this.corruptRate= 0.014;
+
+    // Anomaly
+    this.anomaly    = null;
+    this.nextAnomalyAt = 0;
+    this.anomalyStartedAt = 0;
+
+    // Loop
+    this.lastTime = 0;
+    this.tick     = 0;
+    this._resizeTimer = null;
+
+    // Report button ready-pulse timer
+    this.reportReadyAt = Infinity;
+
+    this._initVFX();
+    this._bindInputs();
+    window.addEventListener('resize', () => {
+      // PERF-03 FIX: debounce resize
+      clearTimeout(this._resizeTimer);
+      this._resizeTimer = setTimeout(() => this._initVFX(), 220);
+    });
+  }
+
+  _initVFX() {
+    const p = this.cvs.parentElement;
+    this.cvs.width  = p.clientWidth;
+    this.cvs.height = p.clientHeight;
+    this.vfx  = new VFX(this.cvs.width, this.cvs.height);
+    if (this.rend) this.rend.reinitVFX(this.vfx);
+    else this.rend = new Renderer(this.cvs, this.vfx);
+  }
+
+  _bindInputs() {
+    document.querySelectorAll('.cbtn').forEach(btn => {
+      btn.addEventListener('click', () => this.switchCam(+btn.dataset.cam));
+    });
+    document.getElementById('rbtn').addEventListener('click', () => this.report());
+    document.addEventListener('keydown', e => {
+      if (!this.running) return;
+      if (e.key >= '1' && e.key <= '4') { e.preventDefault(); this.switchCam(+e.key - 1); }
+      if (e.code === 'Space') { e.preventDefault(); this.report(); }
+    });
+    document.getElementById('mutebtn').addEventListener('click', e => {
+      const m = this.audio.toggleMute();
+      e.target.textContent = m ? '[UNMUTE]' : '[MUTE]';
+    });
+    document.getElementById('mute-ck').addEventListener('change', e => {
+      if (e.target.checked !== this.audio.muted) { if(this.running) this.audio.toggleMute(); }
+    });
+    document.getElementById('flicker-ck').addEventListener('change', e => {
+      document.getElementById('crt').classList.toggle('flicker', e.target.checked);
+    });
+    document.getElementById('startbtn').addEventListener('click', () => this.start());
+    document.getElementById('replaybtn').addEventListener('click', () => this._reset());
+    document.getElementById('quitbtn').addEventListener('click', () => {
+      document.getElementById('end').style.display = 'none';
+      document.getElementById('boot').style.display = 'flex';
+      document.getElementById('boot').style.opacity = '1';
+    });
+  }
+
+  start() {
+    if (document.getElementById('flicker-ck').checked)
+      document.getElementById('crt').classList.add('flicker');
+
+    const boot = document.getElementById('boot');
+    boot.style.transition = 'opacity 0.5s';
+    boot.style.opacity = '0';
+    setTimeout(() => { boot.style.display = 'none'; }, 500);
+
+    this.audio.init();
+    if (document.getElementById('mute-ck').checked) this.audio.toggleMute();
+
+    this.narr.logFn   = (m, t) => this.log(m, t);
+    this.narr.audioFn = (s) => this.audio.sfx(s);
+
+    this.running = true;
+    this._scheduleAnomaly();
+    this._clock();
+    requestAnimationFrame(t => this._loop(t));
+
+    // Initial narrative fire
+    this.narr.check('score', 0);
+  }
+
+  _reset() {
+    // Full reset without page reload
+    this.running    = false;
+    this.activeCam  = 0;
+    this.integrity  = 100;
+    this.score      = 0;
+    this.falseAlarms= 0;
+    this.difficulty = 1;
+    this.corruptRate= 0.014;
+    this.anomaly    = null;
+    this.nextAnomalyAt = 0;
+    this.anomalyStartedAt = 0;
+    this.reportReadyAt = Infinity;
+    this.tick = 0; this.lastTime = 0;
+
+    // Reset scene states
+    Object.assign(SceneState.entry,  { lightOn:true, doorAjar:false, figureAtDoor:false });
+    Object.assign(SceneState.living, { lightOn:true, tvStatic:false, blindOpen:false, chairMoved:false });
+    Object.assign(SceneState.street, { lamp1On:true, lamp2On:true, fogLevel:0, carGone:false });
+
+    // Reset narrative
+    this.narr.done.clear();
+    this.narr.falseAlarmEventsFired.clear();
+    this.narr.falseAlarms = 0;
+    this.narr.phase = 0;
+    document.getElementById('phase-tag').style.display = 'none';
+
+    // Reset UI
+    document.getElementById('end').style.display = 'none';
+    document.getElementById('rbtn').disabled = false;
+    document.getElementById('intfill').style.width = '100%';
+    document.getElementById('intfill').classList.remove('crit');
+    document.getElementById('intpct').textContent = '100%';
+    document.getElementById('scoreval').textContent = '000';
+    document.getElementById('dangervin').style.opacity = '0';
+    document.getElementById('staticov').style.opacity = '0';
+    document.getElementById('vp').classList.remove('anom-on');
+    document.getElementById('rbtn').classList.remove('ready');
+    document.querySelectorAll('.cbtn').forEach((b,i) => b.classList.toggle('active', i===0));
+    document.getElementById('conbody').innerHTML = '';
+    this._setCam(0);
+    this.running = true;
+    this._scheduleAnomaly();
+    requestAnimationFrame(t => this._loop(t));
+    this.narr.check('score', 0);
+  }
+
+  _clock() {
+    const upd = () => {
+      if (!this.running && !document.getElementById('end').style.display) return;
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toLocaleTimeString('en-GB');
+      // Fake timestamp (shifted to 2031)
+      const h = String(now.getHours()).padStart(2,'0');
+      const m = String(now.getMinutes()).padStart(2,'0');
+      const s = String(now.getSeconds()).padStart(2,'0');
+      document.getElementById('ts').textContent = `2031.11.09 -- ${h}:${m}:${s}`;
+    };
+    upd();
+    setInterval(upd, 1000);
+  }
+
+  _scheduleAnomaly() {
+    // Difficulty: narrows range, but never goes below 1.8s gap
+    const minDelay = Math.max(1800, 9000 / this.difficulty);
+    const maxDelay = Math.max(3500, 15000 / this.difficulty);
+    const delay = Math.random() * (maxDelay - minDelay) + minDelay;
+    this.nextAnomalyAt = performance.now() + delay;
+  }
+
+  _spawnAnomaly() {
+    // Camera weights — bias away from dead channel early game
+    const phase = this.narr.phase;
+    const w3 = phase >= 2 ? 0.55 : phase >= 1 ? 0.3 : 0.1;
+    const weights = [1, 1, 1, w3];
+    const total = weights.reduce((a,b)=>a+b, 0);
+    let r = Math.random() * total, camId = 0;
+    for (let i=0; i<4; i++) { r -= weights[i]; if (r <= 0) { camId = i; break; } }
+
+    let types;
+    if (camId === 3) {
+      types = ['static_face_special']; // handled separately
+    } else {
+      types = ['shadow','displacement','moved'];
+      if (this.difficulty > 1.5) types.push('figure');
+      if (this.difficulty > 2.5) types.push('text');
+      if (phase >= 2) types.push('figure','text');
+    }
+    const type = camId === 3 ? 'static_face_special' : types[Math.floor(Math.random()*types.length)];
+
+    this.anomaly = {
+      camId, type,
+      x: Math.random(), y: Math.random(),
+      seed: Math.random(),
+      spawnTime: performance.now(),
+    };
+
+    this.anomalyStartedAt = performance.now();
+    // Report button shows ready-pulse after 14s on current cam (DESIGN-01 fix: delayed hint only)
+    this.reportReadyAt = performance.now() + 14000;
+    this._updateReadyPulse();
+
+    // Viewport subtle border
+    document.getElementById('vp').classList.add('anom-on');
+
+    // Subtle sound only for non-static anomalies
+    if (type !== 'static_face_special') this.audio.sfx('thump');
+
+    // Narrative checks
+    this._maybeNarrativeLore();
+  }
+
+  _maybeNarrativeLore() {
+    // Occasional ambient lore (not score-gated, just atmosphere)
+    if (Math.random() > 0.35) return;
+    const pool = [
+      { text:'> SECTOR-884 環境掃描中...', type:'sys' },
+      { text:'> 感應器數值：正常範圍外', type:'sys' },
+      { text:'> 心跳感應：偵測到複數目標', type:'warn' },
+      { text:'> 前任操作員已從記錄中移除', type:'warn' },
+      { text:'> 資料傳輸中：目的地未知', type:'warn' },
+      { text:'[ZERO] 這些攝影機已經在這裡多久了？', type:'zero' },
+      { text:'[ZERO] 有時候我覺得鏡頭好像在動。', type:'zero' },
+      { text:'[ZERO] 那個人影——我認得那個輪廓嗎？', type:'zero' },
+    ];
+    const idx = Math.floor(Math.random() * pool.length);
+    setTimeout(() => this.log(pool[idx].text, pool[idx].type), Math.random()*2000+500);
+  }
+
+  _updateReadyPulse() {
+    const on = this.anomaly &&
+               this.anomaly.camId === this.activeCam &&
+               performance.now() >= this.reportReadyAt;
+    document.getElementById('rbtn').classList.toggle('ready', on);
+  }
+
+  switchCam(id) {
+    if (this.activeCam === id) return;
+    this.audio.sfx('switch');
+    this._setCam(id);
+    this._updateReadyPulse();
+  }
+
+  _setCam(id) {
+    this.activeCam = id;
+    document.querySelectorAll('.cbtn').forEach(b => {
+      b.classList.toggle('active', +b.dataset.cam === id);
+    });
+    const names = ['ENTRY 門廊','LIVING 客廳','STREET 街道','░░░░░ 遺失'];
+    const nums  = ['01','02','03','04'];
+    document.getElementById('camlabel').textContent = `CAM-${nums[id]} / ${names[id]}`;
+    document.getElementById('camnum').textContent   = `CAM-${nums[id]}`;
+  }
+
+  report() {
+    if (!this.running) return;
+    const fb = document.getElementById('fb');
+    fb.style.opacity = '1';
+
+    if (this.anomaly && this.anomaly.camId === this.activeCam) {
+      // ── Success ──
+      this.score++;
+      this.integrity = Math.min(100, this.integrity + 7);
+      this.difficulty = Math.min(8, this.difficulty + 0.18); // DESIGN-04 FIX: cap
+      this.corruptRate = Math.min(0.055, 0.014 + this.difficulty*0.005);
+      this.anomaly = null;
+      this.reportReadyAt = Infinity;
+      document.getElementById('vp').classList.remove('anom-on');
+      document.getElementById('rbtn').classList.remove('ready');
+      this._scheduleAnomaly();
+
+      fb.textContent = 'PURGED'; fb.style.color = '#1aff6e';
+      this.audio.sfx('success');
+      // BUG-03 FIX: call _updateIntegrityUI on success too
+      this._updateIntegrityUI();
+      document.getElementById('scoreval').textContent = String(this.score).padStart(3,'0');
+      this.log('> 異常已清除。完整性恢復。', 'sys');
+
+      // Narrative + scene events on score milestone
+      this._scoreEvents(this.score);
+      this.narr.check('score', this.score);
+
+    } else {
+      // ── False alarm ──
+      this.falseAlarms++;
+      this.integrity -= 7;
+      fb.textContent = 'FALSE ALARM'; fb.style.color = '#ff2020';
+      this.audio.sfx('error');
+      this.log('> 誤報。完整性損耗。', 'alert');
+      this._updateIntegrityUI();
+      this.narr.check('falseAlarm', this.falseAlarms);
+    }
+
+    setTimeout(() => { fb.style.opacity = '0'; }, 650);
+  }
+
+  _scoreEvents(score) {
+    // Scene narrative events triggered by score
+    if (score === 3)  { SceneState.entry.doorAjar = true; this.log('> [SYSTEM] CAM-01 環境異常：門縫開啟', 'warn'); }
+    if (score === 5)  { SceneState.living.tvStatic = true; this.log('> [SYSTEM] CAM-02：未接電源的電視機出現訊號', 'warn'); }
+    if (score === 7)  { SceneState.street.lamp1On = false; this.log('> [SYSTEM] CAM-03：路燈1失去電源', 'sys'); }
+    if (score === 9)  { SceneState.entry.figureAtDoor = true; this.log('> [SYSTEM] CAM-01：門口偵測到生物特徵', 'alert'); }
+    if (score === 11) { SceneState.street.carGone = true; this.log('> [SYSTEM] CAM-03：停放車輛已消失', 'alert'); }
+    if (score === 13) { SceneState.living.chairMoved = true; SceneState.street.fogLevel = 0.5; }
+    if (score === 15) { SceneState.entry.lightOn = false; this.log('> [SYSTEM] CAM-01：主電源中斷', 'glitch'); }
+    if (score === 17) { SceneState.street.lamp2On = false; SceneState.street.fogLevel = 1; }
+  }
+
+  _updateIntegrityUI() {
+    const fill  = document.getElementById('intfill');
+    const pctEl = document.getElementById('intpct');
+    const clampedInt = Math.max(0, this.integrity);
+    fill.style.width    = `${clampedInt}%`;
+    pctEl.textContent   = `${Math.floor(clampedInt)}%`;
+    fill.classList.toggle('crit', this.integrity < 30);
+    document.getElementById('dangervin').style.opacity =
+      this.integrity < 50 ? ((50 - this.integrity) / 50) * 0.85 : 0;
+    document.getElementById('staticov').style.opacity =
+      this.integrity < 38 ? ((38 - this.integrity) / 38) * 0.42 : 0;
+    if (this.integrity <= 0) this._gameOver();
+  }
+
+  _gameOver() {
+    this.running = false;
+    this.audio.sfx('gameover');
+    document.getElementById('rbtn').disabled = true;
+
+    const endings = [
+      {
+        title:'CONNECTION TERMINATED',
+        color:'#ff2020',
+        sub: `異常清除：${this.score} 次 | 最終完整性：0%`,
+        msg:`連線已中斷。系統記錄已上傳至PANOPTICON核心。\n\n你回報的每一個"異常"——每一個被你標記的位置——\n那些人已被帶走。\n\n感謝你的服務，操作員ZERO。\n你的繼任者將在72小時後上線。`
+      },
+      {
+        title:'SIGNAL LOST',
+        color:'#ff2020',
+        sub: `工作時長：${Math.floor(this.tick/3600)}分鐘 | 清除：${this.score}次`,
+        msg:`ZERO，你聽到了嗎？\n\n那些攝影機裡的人——他們沒有名字，沒有面孔。\n他們只是被稱為"異常"。\n\n現在你也是了。\n\n歡迎加入PANOPTICON。`
+      },
+      {
+        title:'OPERATOR COMPROMISED',
+        color:'#ff6600',
+        sub: `評估：有價值的資產 | 分數：${this.score}`,
+        msg:`你問過我們，PANOPTICON是什麼問題的答案。\n\n不是文明滅亡的問題。\n\n是這個問題：當一個人知道自己被監視時，他們還會做什麼？\n\n一切都是測試，ZERO。\n你通過了。\n\n現在你不能離開了。`
+      },
+    ];
+
+    const e = endings[Math.min(this.score >= 10 ? 2 : this.score >= 5 ? 1 : 0, endings.length-1)];
+    const endEl = document.getElementById('end');
+    document.getElementById('endtitle').textContent   = e.title;
+    document.getElementById('endtitle').style.color   = e.color;
+    document.getElementById('endsub').textContent     = e.sub;
+    document.getElementById('endmsg').textContent     = e.msg;
+    endEl.style.display = 'flex';
+
+    this.log('> 連線中斷。記錄上傳中。', 'alert');
+    this.log('感謝你，ZERO。', 'glitch');
+  }
+
+  log(msg, type = 'sys') {
+    const body = document.getElementById('conbody');
+    const el = document.createElement('div');
+    el.className = `lg ${type}`;
+    el.textContent = msg;
+    body.appendChild(el);
+    body.scrollTop = body.scrollHeight;
+    // DESIGN-05 FIX: cap at 40 lines
+    while (body.children.length > 40) body.firstChild.remove();
+  }
+
+  // ── GAME LOOP ─────────────────────────────────────
+  _loop(ts) {
+    if (!this.running) return;
+    const dt = Math.min(ts - this.lastTime, 50);
+    this.lastTime = ts;
+    this.tick++;
+
+    // Anomaly management
+    if (!this.anomaly && ts > this.nextAnomalyAt) {
+      this._spawnAnomaly();
+    }
+    if (this.anomaly) {
+      this.integrity -= this.corruptRate * (dt / 16.67);
+      // BUG-04 FIX: anomalyDuration only updated while anomaly exists
+      // UI throttle: every 45 frames
+      if (this.tick % 45 === 0) this._updateIntegrityUI();
+      // Update report ready pulse
+      if (this.tick % 20 === 0) this._updateReadyPulse();
+    }
+
+    // Render
+    const anomalyForRender = (this.anomaly && this.anomaly.type !== 'static_face_special')
+      ? this.anomaly
+      : (this.anomaly && this.anomaly.type === 'static_face_special' ? this.anomaly : null);
+    this.rend.render(this.activeCam, anomalyForRender, this.tick, this.integrity);
+
+    // FPS
+    if (this.tick % 30 === 0 && dt > 0) {
+      document.getElementById('fps').textContent = `FPS:${Math.round(1000/dt)}`;
+    }
+
+    requestAnimationFrame(t => this._loop(t));
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────
+window.addEventListener('load', () => { window.game = new Game(); });
+</script>
+</body>
+</html>
